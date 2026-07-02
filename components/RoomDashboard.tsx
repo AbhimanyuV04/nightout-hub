@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
 import ItineraryPoll from "./ItineraryPoll";
@@ -18,6 +19,7 @@ type Suggestion = { id: string; place_name: string; upvotes_count: number };
 type Quote = { id: string; quote_text: string; speaker_name: string };
 
 type Tab = "vibe" | "split" | "map" | "media" | "quotes";
+const VALID_TABS: Tab[] = ["vibe", "split", "map", "media", "quotes"];
 
 export default function RoomDashboard({
   roomId,
@@ -42,8 +44,21 @@ export default function RoomDashboard({
   debts: Debt[];
   media: MediaItem[];
 }) {
-  const [active, setActive] = useState<Tab>("vibe");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [active, setActiveState] = useState<Tab>(
+    VALID_TABS.includes(tabParam as Tab) ? (tabParam as Tab) : "vibe"
+  );
   const nameById = new Map(members.map((m) => [m.id, m.display_name]));
+
+  // Persist the active tab in the URL so a refresh restores your place.
+  // replaceState avoids a Next navigation (no server re-fetch, no history spam).
+  function setActive(tab: Tab) {
+    setActiveState(tab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    window.history.replaceState(null, "", url);
+  }
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "vibe", label: "Vibe", icon: <HomeIcon /> },
