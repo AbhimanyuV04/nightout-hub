@@ -64,6 +64,16 @@ async function resolveMember(roomCode: string): Promise<Member | { error: string
   return { roomId: room.id, userId: member.id, isHost: member.is_host };
 }
 
+// A saved global nickname wins over the raw Google name when joining/creating a night.
+async function preferredName(authId: string, fallback: string): Promise<string> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("nickname")
+    .eq("id", authId)
+    .maybeSingle();
+  return data?.nickname?.trim() || fallback;
+}
+
 export async function createRoom(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await getAuthUser();
   if (!auth) return { error: "Sign in with Google first" };
@@ -86,7 +96,7 @@ export async function createRoom(_prev: ActionState, formData: FormData): Promis
     .from("users")
     .insert({
       room_id: room.id,
-      display_name: auth.name,
+      display_name: await preferredName(auth.authId, auth.name),
       is_host: true,
       upi_id: upi.upi,
       auth_id: auth.authId,
@@ -115,7 +125,12 @@ export async function joinRoom(_prev: ActionState, formData: FormData): Promise<
   // Idempotent: unique(room_id, auth_id) means re-joining just lands back in the room.
   const { error } = await supabase
     .from("users")
-    .insert({ room_id: room.id, display_name: auth.name, upi_id: upi.upi, auth_id: auth.authId });
+    .insert({
+      room_id: room.id,
+      display_name: await preferredName(auth.authId, auth.name),
+      upi_id: upi.upi,
+      auth_id: auth.authId,
+    });
   if (error && error.code !== "23505") return { error: "Could not join room" };
 
   redirect(`/room/${room.room_code}`);
@@ -454,5 +469,33 @@ export async function hideNight(roomCode: string): Promise<ActionState> {
   if (error) return { error: "Could not remove night" };
 
   revalidatePath("/nights");
+  return null;
+}
+
+export async function getMyProfile(): Promise<{ nickname: string | null; defaultName: string }> {
+  const auth = await getAuthUser();
+  if (!auth) return { nickname: null, defaultName: "" };
+  const { data } = await supabase
+    .from("profiles")
+    .select("nickname")
+    .eq("id", auth.authId)
+    .maybeSingle();
+  return { nickname: data?.nickname ?? null, defaultName: auth.name };
+}
+
+export async function updateNickname(nickname: string): Promise<ActionState> {
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
+  const trimmed = nickname.trim();
+  if (trimmed.length > 40) return { error: "Nickname must be 40 characters or fewer" };
+
+  const { error } = await supabase.from("profiles").upsert({
+    id: auth.authId,
+    nickname: trimmed || null,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { error: "Could not save nickname" };
+
+  revalidatePath("/settings");
   return null;
 }
