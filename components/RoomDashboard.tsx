@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
+import EditMyName from "./EditMyName";
 import ItineraryPoll from "./ItineraryPoll";
 import LocationShare from "./LocationShare";
 import MediaGallery from "./MediaGallery";
@@ -119,9 +120,17 @@ export default function RoomDashboard({
                     <h2 className="section-title">Members</h2>
                     <ul className="space-y-1.5">
                       {members.map((u) => (
-                        <li key={u.id} className="flex items-center justify-between">
-                          <span>{u.display_name}</span>
-                          {u.is_host && <span className="muted text-xs">host</span>}
+                        <li key={u.id} className="flex items-center justify-between gap-2">
+                          <span>
+                            {u.display_name}
+                            {u.id === me?.id && <span className="muted text-xs"> (you)</span>}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {u.is_host && <span className="muted text-xs">host</span>}
+                            {u.id === me?.id && (
+                              <EditMyName roomCode={roomCode} currentName={u.display_name} />
+                            )}
+                          </div>
                         </li>
                       ))}
                     </ul>

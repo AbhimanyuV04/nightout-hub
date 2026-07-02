@@ -499,3 +499,22 @@ export async function updateNickname(nickname: string): Promise<ActionState> {
   revalidatePath("/settings");
   return null;
 }
+
+// Per-night override: rename yourself within a single night (this night's membership only).
+export async function updateMyNightName(roomCode: string, name: string): Promise<ActionState> {
+  const member = await resolveMember(roomCode);
+  if ("error" in member) return member;
+
+  const trimmed = name.trim();
+  if (!trimmed) return { error: "Name is required" };
+  if (trimmed.length > 40) return { error: "Name must be 40 characters or fewer" };
+
+  const { error } = await supabase
+    .from("users")
+    .update({ display_name: trimmed })
+    .eq("id", member.userId);
+  if (error) return { error: "Could not update name" };
+
+  revalidatePath(`/room/${roomCode.toUpperCase()}`);
+  return null;
+}
