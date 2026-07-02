@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { updateVibeCheck } from "@/app/actions";
+import { archiveRoom, updateRoomSettings } from "@/app/actions";
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return "It's happening now!";
@@ -45,7 +45,16 @@ export default function VibeDashboard({
     const dc = String(form.get("dressCode") ?? "");
     const date = String(form.get("date") ?? "");
     startTransition(async () => {
-      const res = await updateVibeCheck(roomCode, dc, date);
+      const res = await updateRoomSettings(roomCode, dc, date);
+      setError(res?.error ?? "");
+    });
+  }
+
+  function archive() {
+    if (!window.confirm("Archive this room? Members will lose access.")) return;
+    startTransition(async () => {
+      const res = await archiveRoom(roomCode);
+      // Success redirects away; only an error returns here.
       setError(res?.error ?? "");
     });
   }
@@ -65,24 +74,35 @@ export default function VibeDashboard({
       </div>
 
       {isHost && (
-        <form onSubmit={submit} className="space-y-3 border-t border-zinc-800 pt-3">
-          <input
-            name="dressCode"
-            defaultValue={dressCode ?? ""}
-            placeholder="Dress code"
-            className="field"
-          />
-          <input
-            name="date"
-            type="datetime-local"
-            defaultValue={eventDate ? eventDate.slice(0, 16) : ""}
-            className="field [color-scheme:dark]"
-          />
-          <button type="submit" disabled={pending} className="btn-primary">
-            Save vibe
+        <div className="space-y-3 border-t border-zinc-800 pt-3">
+          <p className="muted text-xs uppercase tracking-widest">Host settings</p>
+          <form onSubmit={submit} className="space-y-3">
+            <input
+              name="dressCode"
+              defaultValue={dressCode ?? ""}
+              placeholder="Dress code"
+              className="field"
+            />
+            <input
+              name="date"
+              type="datetime-local"
+              defaultValue={eventDate ? eventDate.slice(0, 16) : ""}
+              className="field [color-scheme:dark]"
+            />
+            <button type="submit" disabled={pending} className="btn-primary">
+              Save settings
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={archive}
+            disabled={pending}
+            className="btn-ghost w-full py-3 text-[#FF375F]"
+          >
+            Archive room
           </button>
           {error && <p className="text-sm text-[#FF375F]">{error}</p>}
-        </form>
+        </div>
       )}
     </section>
   );

@@ -2,10 +2,10 @@
 
 import { randomInt } from "crypto";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { evenSplit, simplifyDebts } from "@/lib/debtEngine";
 import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabaseServer";
 import { upiPayLink, VPA_REGEX } from "@/lib/upi";
 
 const CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no O/0, I/1/L
@@ -16,12 +16,21 @@ function generateRoomCode() {
 
 export type ActionState = { error: string } | null;
 
-async function setUserCookie(userId: string) {
-  (await cookies()).set("nightout_user_id", userId, {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24,
-  });
+// Identity comes from the Supabase Auth (Google) session, not a cookie we set. auth_id is
+// the permanent per-person UUID; name is the verified Google profile name.
+async function getAuthUser(): Promise<{ authId: string; name: string } | null> {
+  const supabaseAuth = await getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+  if (!user) return null;
+  const meta = user.user_metadata ?? {};
+  const name =
+    (typeof meta.full_name === "string" && meta.full_name) ||
+    (typeof meta.name === "string" && meta.name) ||
+    user.email ||
+    "Guest";
+  return { authId: user.id, name };
 }
 
 function parseUpi(formData: FormData): { upi: string | null } | { error: string } {
@@ -33,8 +42,8 @@ function parseUpi(formData: FormData): { upi: string | null } | { error: string 
 type Member = { roomId: string; userId: string; isHost: boolean };
 
 async function resolveMember(roomCode: string): Promise<Member | { error: string }> {
-  const userId = (await cookies()).get("nightout_user_id")?.value;
-  if (!userId) return { error: "Join the room first" };
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
 
   const { data: room } = await supabase
     .from("rooms")
@@ -46,18 +55,18 @@ async function resolveMember(roomCode: string): Promise<Member | { error: string
 
   const { data: member } = await supabase
     .from("users")
-    .select("is_host")
-    .eq("id", userId)
+    .select("id, is_host")
+    .eq("auth_id", auth.authId)
     .eq("room_id", room.id)
     .single();
   if (!member) return { error: "You are not in this room" };
 
-  return { roomId: room.id, userId, isHost: member.is_host };
+  return { roomId: room.id, userId: member.id, isHost: member.is_host };
 }
 
 export async function createRoom(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { error: "Name is required" };
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
   const upi = parseUpi(formData);
   if ("error" in upi) return upi;
 
@@ -73,21 +82,24 @@ export async function createRoom(_prev: ActionState, formData: FormData): Promis
   }
   if (!room) return { error: "Could not generate a room code, try again" };
 
-  const { data: host, error: userError } = await supabase
+  const { error: userError } = await supabase
     .from("users")
-    .insert({ room_id: room.id, display_name: name, is_host: true, upi_id: upi.upi })
-    .select("id")
-    .single();
+    .insert({
+      room_id: room.id,
+      display_name: auth.name,
+      is_host: true,
+      upi_id: upi.upi,
+      auth_id: auth.authId,
+    });
   if (userError) return { error: "Could not create host user" };
 
-  await setUserCookie(host.id);
   redirect(`/room/${room.room_code}`);
 }
 
 export async function joinRoom(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const name = String(formData.get("name") ?? "").trim();
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
   const code = String(formData.get("code") ?? "").trim().toUpperCase();
-  if (!name) return { error: "Name is required" };
   if (!/^[A-Z0-9]{6}$/.test(code)) return { error: "Code must be 6 letters/numbers" };
   const upi = parseUpi(formData);
   if ("error" in upi) return upi;
@@ -100,20 +112,18 @@ export async function joinRoom(_prev: ActionState, formData: FormData): Promise<
     .single();
   if (!room) return { error: "Room not found or no longer active" };
 
-  const { data: user, error } = await supabase
+  // Idempotent: unique(room_id, auth_id) means re-joining just lands back in the room.
+  const { error } = await supabase
     .from("users")
-    .insert({ room_id: room.id, display_name: name, upi_id: upi.upi })
-    .select("id")
-    .single();
-  if (error) return { error: "Could not join room" };
+    .insert({ room_id: room.id, display_name: auth.name, upi_id: upi.upi, auth_id: auth.authId });
+  if (error && error.code !== "23505") return { error: "Could not join room" };
 
-  await setUserCookie(user.id);
   redirect(`/room/${room.room_code}`);
 }
 
 export async function addExpense(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const payerId = (await cookies()).get("nightout_user_id")?.value;
-  if (!payerId) return { error: "Join the room first" };
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
 
   const roomId = String(formData.get("roomId") ?? "");
   const roomCode = String(formData.get("roomCode") ?? "");
@@ -124,6 +134,15 @@ export async function addExpense(_prev: ActionState, formData: FormData): Promis
   if (!description) return { error: "Description is required" };
   if (!Number.isFinite(amount) || amount <= 0) return { error: "Amount must be positive" };
   if (participants.length === 0) return { error: "Pick at least one participant" };
+
+  const { data: payer } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_id", auth.authId)
+    .eq("room_id", roomId)
+    .single();
+  if (!payer) return { error: "You are not in this room" };
+  const payerId = payer.id;
 
   const { data: members } = await supabase
     .from("users")
@@ -204,28 +223,12 @@ export async function getRoomDebts(roomCode: string): Promise<RoomDebt[]> {
 }
 
 export async function saveMediaRecord(roomCode: string, imageUrl: string): Promise<ActionState> {
-  const userId = (await cookies()).get("nightout_user_id")?.value;
-  if (!userId) return { error: "Join the room first" };
-
-  const { data: room } = await supabase
-    .from("rooms")
-    .select("id")
-    .eq("room_code", roomCode.toUpperCase())
-    .eq("is_active", true)
-    .single();
-  if (!room) return { error: "Room not found" };
-
-  const { data: member } = await supabase
-    .from("users")
-    .select("id")
-    .eq("id", userId)
-    .eq("room_id", room.id)
-    .single();
-  if (!member) return { error: "You are not in this room" };
+  const member = await resolveMember(roomCode);
+  if ("error" in member) return member;
 
   const { error } = await supabase
     .from("room_media")
-    .insert({ room_id: room.id, user_id: userId, image_url: imageUrl });
+    .insert({ room_id: member.roomId, user_id: member.userId, image_url: imageUrl });
   if (error) return { error: "Could not save media" };
 
   revalidatePath(`/room/${roomCode.toUpperCase()}`);
@@ -250,28 +253,67 @@ export async function getRoomMedia(roomCode: string): Promise<RoomMedia[]> {
   return data ?? [];
 }
 
-export async function updateVibeCheck(
+// Explicit host authorization: match the caller's auth.uid() against the room's *host*
+// user row (not merely "a member"). Shared by every host-only mutation below.
+async function resolveHost(roomCode: string): Promise<{ roomId: string } | { error: string }> {
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
+
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("id")
+    .eq("room_code", roomCode.toUpperCase())
+    .eq("is_active", true)
+    .single();
+  if (!room) return { error: "Room not found" };
+
+  const { data: host } = await supabase
+    .from("users")
+    .select("auth_id")
+    .eq("room_id", room.id)
+    .eq("is_host", true)
+    .single();
+  if (!host || host.auth_id !== auth.authId) {
+    return { error: "Only the host can change settings" };
+  }
+  return { roomId: room.id };
+}
+
+export async function updateRoomSettings(
   roomCode: string,
   dressCode: string,
-  date: string
+  eventDate: string
 ): Promise<ActionState> {
-  const member = await resolveMember(roomCode);
-  if ("error" in member) return member;
-  if (!member.isHost) return { error: "Only the host can set the vibe" };
+  const host = await resolveHost(roomCode);
+  if ("error" in host) return host;
 
-  const eventDate = date ? new Date(date) : null;
-  if (eventDate && Number.isNaN(eventDate.getTime())) return { error: "Invalid date" };
+  const parsed = eventDate ? new Date(eventDate) : null;
+  if (parsed && Number.isNaN(parsed.getTime())) return { error: "Invalid date" };
 
   const { error } = await supabase.from("vibe_check").upsert({
-    room_id: member.roomId,
+    room_id: host.roomId,
     dress_code: dressCode.trim() || null,
-    event_date: eventDate?.toISOString() ?? null,
+    event_date: parsed?.toISOString() ?? null,
     updated_at: new Date().toISOString(),
   });
-  if (error) return { error: "Could not save vibe" };
+  if (error) return { error: "Could not save settings" };
 
   revalidatePath(`/room/${roomCode.toUpperCase()}`);
   return null;
+}
+
+export async function archiveRoom(roomCode: string): Promise<ActionState> {
+  const host = await resolveHost(roomCode);
+  if ("error" in host) return host;
+
+  const { error } = await supabase
+    .from("rooms")
+    .update({ is_active: false })
+    .eq("id", host.roomId);
+  if (error) return { error: "Could not archive room" };
+
+  revalidatePath(`/room/${roomCode.toUpperCase()}`);
+  redirect("/");
 }
 
 export async function addItinerarySuggestion(roomCode: string, placeName: string): Promise<ActionState> {
@@ -294,17 +336,20 @@ export async function addItinerarySuggestion(roomCode: string, placeName: string
 
 // ponytail: read-modify-write; move to an atomic RPC if concurrent votes race
 export async function voteItinerary(suggestionId: string, increment: boolean): Promise<ActionState> {
-  const userId = (await cookies()).get("nightout_user_id")?.value;
-  if (!userId) return { error: "Join the room first" };
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
 
   const { data: suggestion } = await supabase
     .from("itinerary_suggestions")
-    .select("upvotes_count, rooms(room_code, users(id))")
+    .select("upvotes_count, rooms(room_code, users(auth_id))")
     .eq("id", suggestionId)
     .single();
-  const room = suggestion?.rooms as unknown as { room_code: string; users: { id: string }[] } | null;
+  const room = suggestion?.rooms as unknown as {
+    room_code: string;
+    users: { auth_id: string | null }[];
+  } | null;
   if (!suggestion || !room) return { error: "Suggestion not found" };
-  if (!room.users.some((u) => u.id === userId)) return { error: "You are not in this room" };
+  if (!room.users.some((u) => u.auth_id === auth.authId)) return { error: "You are not in this room" };
 
   const next = Math.max(0, suggestion.upvotes_count + (increment ? 1 : -1));
   const { error } = await supabase
