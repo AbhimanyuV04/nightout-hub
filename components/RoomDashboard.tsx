@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
 import ItineraryPoll from "./ItineraryPoll";
 import LocationShare from "./LocationShare";
+import MediaGallery from "./MediaGallery";
 import MediaUpload from "./MediaUpload";
 import QuoteBoard from "./QuoteBoard";
 import VibeDashboard from "./VibeDashboard";
@@ -12,7 +13,7 @@ import VibeDashboard from "./VibeDashboard";
 type Member = { id: string; display_name: string; is_host: boolean };
 type Expense = { id: string; description: string; amount: number | string; paid_by_user_id: string };
 type Debt = { fromName: string; toName: string; amount: number; upiLink: string | null };
-type MediaItem = { id: string; image_url: string };
+type MediaItem = { id: string; image_url: string; user_id: string };
 type Suggestion = { id: string; place_name: string; upvotes_count: number };
 type Quote = { id: string; quote_text: string; speaker_name: string };
 
@@ -161,23 +162,7 @@ export default function RoomDashboard({
               {active === "media" && (
                 <>
                   <MediaUpload roomCode={roomCode} />
-                  <section className="card space-y-2">
-                    <h2 className="font-semibold">Gallery</h2>
-                    {!media.length && <p className="muted text-sm">No photos yet</p>}
-                    <div className="grid grid-cols-3 gap-2">
-                      {media.map((m, i) => (
-                        <motion.img
-                          key={m.id}
-                          src={m.image_url}
-                          alt=""
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
-                          className="aspect-square w-full rounded-xl object-cover"
-                        />
-                      ))}
-                    </div>
-                  </section>
+                  <MediaGallery media={media} members={members} />
                 </>
               )}
 
