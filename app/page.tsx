@@ -67,9 +67,14 @@ export default function Home() {
             <p className="muted text-xs uppercase tracking-[0.3em]">NightOut Hub</p>
             <h1 className="text-3xl font-bold tracking-tight">Hey {name}</h1>
           </div>
-          <button onClick={signOut} className="muted text-sm underline underline-offset-4">
-            Sign out
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <Link href="/settings" className="muted text-sm underline underline-offset-4">
+              Settings
+            </Link>
+            <button onClick={signOut} className="muted text-sm underline underline-offset-4">
+              Sign out
+            </button>
+          </div>
         </header>
 
         <div className="space-y-4">
