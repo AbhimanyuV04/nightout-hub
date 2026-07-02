@@ -30,6 +30,7 @@ export default function VibeDashboard({
   isHost: boolean;
 }) {
   const [parts, setParts] = useState<Parts | null>(null);
+  const [dateLabel, setDateLabel] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -37,8 +38,19 @@ export default function VibeDashboard({
   useEffect(() => {
     if (!eventDate) {
       setParts(null);
+      setDateLabel(null);
       return;
     }
+    // Formatted client-side so it reads in the viewer's own timezone (and avoids SSR mismatch).
+    setDateLabel(
+      new Date(eventDate).toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    );
     const target = new Date(eventDate).getTime();
     const tick = () => setParts(remainingParts(target - Date.now()));
     tick();
@@ -77,6 +89,7 @@ export default function VibeDashboard({
 
       <div className="space-y-2">
         <p className="muted text-sm">Countdown</p>
+        {dateLabel && <p className="text-base font-semibold tracking-tight">{dateLabel}</p>}
         {!eventDate ? (
           <p className="text-lg text-[#8E8E93]">No date set</p>
         ) : !parts ? (
