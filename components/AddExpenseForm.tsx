@@ -19,11 +19,11 @@ export default function AddExpenseForm({
   const [amount, setAmount] = useState("");
 
   return (
-    <form action={action} className="space-y-2 border p-4">
+    <form action={action} className="card space-y-3">
       <h2 className="font-semibold">Add expense</h2>
       <input type="hidden" name="roomId" value={roomId} />
       <input type="hidden" name="roomCode" value={roomCode} />
-      <input name="description" placeholder="Description" required className="border p-2 w-full" />
+      <input name="description" placeholder="Description" required className="field" />
       <input
         name="amount"
         type="number"
@@ -33,21 +33,33 @@ export default function AddExpenseForm({
         required
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className="border p-2 w-full"
+        className="field"
       />
       <BillScanner onAmount={(n) => setAmount(n.toFixed(2))} />
-      <fieldset className="space-y-1">
-        <legend className="text-sm">Split between:</legend>
-        {members.map((m) => (
-          <label key={m.id} className="block text-sm">
-            <input type="checkbox" name="participants" value={m.id} defaultChecked /> {m.display_name}
-          </label>
-        ))}
+      <fieldset className="space-y-2">
+        <legend className="muted text-sm">Split between</legend>
+        <div className="flex flex-wrap gap-2">
+          {members.map((m) => (
+            <label
+              key={m.id}
+              className="flex items-center gap-2 rounded-xl bg-[#111111] px-3 py-2 text-sm"
+            >
+              <input
+                type="checkbox"
+                name="participants"
+                value={m.id}
+                defaultChecked
+                className="accent-[#FF375F]"
+              />
+              {m.display_name}
+            </label>
+          ))}
+        </div>
       </fieldset>
-      <button type="submit" disabled={pending} className="border p-2 w-full">
+      <button type="submit" disabled={pending} className="btn-primary">
         {pending ? "Adding..." : "Add expense"}
       </button>
-      {state?.error && <p className="text-red-600 text-sm">{state.error}</p>}
+      {state?.error && <p className="text-sm text-[#FF375F]">{state.error}</p>}
     </form>
   );
 }

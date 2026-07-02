@@ -26,22 +26,31 @@ export default function BillScanner({ onAmount }: { onAmount: (amount: number) =
   }
 
   return (
-    <div className="space-y-2 border p-2">
-      <label className="block text-sm">
+    <div className="space-y-2 rounded-xl border border-zinc-800 bg-[#111111] p-3">
+      <label className="muted block text-sm">
         Scan bill (optional)
-        <input type="file" accept="image/*" onChange={handleFile} className="block w-full" />
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFile}
+          className="mt-1 block w-full text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#2C2C2E] file:px-3 file:py-1.5 file:text-white"
+        />
       </label>
       {status && <p className="text-sm">{status}</p>}
-      {candidates.map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onAmount(n)}
-          className="border px-2 py-1 mr-2 text-sm"
-        >
-          ₹{n.toFixed(2)}
-        </button>
-      ))}
+      {candidates.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {candidates.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onAmount(n)}
+              className="btn-ghost text-sm"
+            >
+              ₹{n.toFixed(2)}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
