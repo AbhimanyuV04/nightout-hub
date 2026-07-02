@@ -77,11 +77,25 @@ export default function RoomDashboard({
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
             <Link
-              href="/"
-              aria-label="Back to home"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-[#1C1C1E] text-lg text-white active:scale-90"
+              href="/nights"
+              aria-label="Back to your nights"
+              className="group flex shrink-0 items-center gap-1.5 rounded-full border border-[#FF375F]/30 bg-[#FF375F]/10 px-3 py-1.5 shadow-[0_0_14px_-3px_rgba(255,55,95,0.55)] backdrop-blur-md transition active:scale-95"
             >
-              ←
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3.5 w-3.5 text-[#FF375F] transition-transform group-hover:-translate-x-0.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              <span className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-sm font-semibold text-transparent">
+                Nights
+              </span>
             </Link>
             <div>
               <p className="muted text-xs uppercase tracking-widest">NightOut</p>
