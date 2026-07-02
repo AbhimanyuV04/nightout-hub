@@ -53,13 +53,33 @@ export default function MediaUpload({ roomCode }: { roomCode: string }) {
   }
 
   return (
-    <div className="space-y-2 border p-4">
+    <div className="card space-y-3">
       <h2 className="font-semibold">Add photos</h2>
-      <input type="file" accept="image/*" multiple onChange={handleFiles} className="block w-full" />
-      <ul className="space-y-1">
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFiles}
+        className="block w-full text-sm text-white file:mr-3 file:rounded-lg file:border-0 file:bg-[#FF375F] file:px-4 file:py-2 file:font-medium file:text-white"
+      />
+      <ul className="space-y-2">
         {uploads.map((u) => (
-          <li key={u.id} className="text-sm">
-            {u.name} — {u.error ? `error: ${u.error}` : `${u.progress}%`}
+          <li key={u.id} className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+              <span className="truncate">{u.name}</span>
+              <span className={u.error ? "text-[#FF375F]" : "muted"}>
+                {u.error ? "failed" : `${u.progress}%`}
+              </span>
+            </div>
+            {!u.error && (
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#111111]">
+                <div
+                  className="h-full rounded-full bg-[#FF375F] transition-all"
+                  style={{ width: `${u.progress}%` }}
+                />
+              </div>
+            )}
+            {u.error && <p className="text-xs text-[#FF375F]">{u.error}</p>}
           </li>
         ))}
       </ul>

@@ -27,34 +27,35 @@ export default function QuoteBoard({ roomCode, quotes }: { roomCode: string; quo
   }
 
   return (
-    <section className="border p-4 space-y-2">
+    <section className="card space-y-3">
       <h2 className="font-semibold">Quote board</h2>
-      <ul className="max-h-48 overflow-y-auto space-y-1">
-        {!quotes.length && <li className="text-sm">No quotes yet</li>}
+      <ul className="max-h-64 space-y-2 overflow-y-auto">
+        {!quotes.length && <li className="muted text-sm">No quotes yet</li>}
         {quotes.map((q) => (
-          <li key={q.id} className="text-sm">
-            &ldquo;{q.quote_text}&rdquo; — {q.speaker_name}
+          <li key={q.id} className="rounded-xl bg-[#111111] px-3 py-2">
+            <p className="leading-snug">&ldquo;{q.quote_text}&rdquo;</p>
+            <p className="muted mt-1 text-sm">— {q.speaker_name}</p>
           </li>
         ))}
       </ul>
-      <form onSubmit={submit} className="space-y-2">
+      <form onSubmit={submit} className="space-y-3">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="What was said"
-          className="border p-2 w-full"
+          className="field"
         />
         <input
           value={speaker}
           onChange={(e) => setSpeaker(e.target.value)}
           placeholder="Who said it"
-          className="border p-2 w-full"
+          className="field"
         />
-        <button type="submit" disabled={pending} className="border p-2 w-full">
+        <button type="submit" disabled={pending} className="btn-primary">
           Log quote
         </button>
       </form>
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-sm text-[#FF375F]">{error}</p>}
     </section>
   );
 }

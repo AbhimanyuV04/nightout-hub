@@ -8,34 +8,43 @@ export default function Home() {
   const [joinState, joinAction, joining] = useActionState(joinRoom, null);
 
   return (
-    <main className="mx-auto max-w-sm p-6 space-y-8">
-      <h1 className="text-xl font-bold">NightOut Hub</h1>
+    <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center gap-8 px-5 py-10">
+      <header className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">NightOut Hub</h1>
+        <p className="muted">Plan the night, split the bill, share the vibe.</p>
+      </header>
 
-      <form action={createAction} className="space-y-2 border p-4">
-        <h2 className="font-semibold">Create a NightOut</h2>
-        <input name="name" placeholder="Your name" required className="border p-2 w-full" />
-        <input name="upi" placeholder="UPI ID (optional, e.g. name@bank)" className="border p-2 w-full" />
-        <button type="submit" disabled={creating} className="border p-2 w-full">
+      <form action={createAction} className="card space-y-3">
+        <h2 className="text-lg font-semibold">Create a NightOut</h2>
+        <input name="name" placeholder="Your name" required className="field" />
+        <input name="upi" placeholder="UPI ID (optional, e.g. name@bank)" className="field" />
+        <button type="submit" disabled={creating} className="btn-primary">
           {creating ? "Creating..." : "Create a NightOut"}
         </button>
-        {createState?.error && <p className="text-red-600 text-sm">{createState.error}</p>}
+        {createState?.error && <p className="text-sm text-[#FF375F]">{createState.error}</p>}
       </form>
 
-      <form action={joinAction} className="space-y-2 border p-4">
-        <h2 className="font-semibold">Join a NightOut</h2>
-        <input name="name" placeholder="Your name" required className="border p-2 w-full" />
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-zinc-800" />
+        <span className="muted text-xs uppercase tracking-widest">or</span>
+        <span className="h-px flex-1 bg-zinc-800" />
+      </div>
+
+      <form action={joinAction} className="card space-y-3">
+        <h2 className="text-lg font-semibold">Join a NightOut</h2>
+        <input name="name" placeholder="Your name" required className="field" />
         <input
           name="code"
           placeholder="Room code (e.g. DXB492)"
           required
           maxLength={6}
-          className="border p-2 w-full uppercase"
+          className="field uppercase tracking-[0.3em]"
         />
-        <input name="upi" placeholder="UPI ID (optional, e.g. name@bank)" className="border p-2 w-full" />
-        <button type="submit" disabled={joining} className="border p-2 w-full">
+        <input name="upi" placeholder="UPI ID (optional, e.g. name@bank)" className="field" />
+        <button type="submit" disabled={joining} className="btn-primary">
           {joining ? "Joining..." : "Join a NightOut"}
         </button>
-        {joinState?.error && <p className="text-red-600 text-sm">{joinState.error}</p>}
+        {joinState?.error && <p className="text-sm text-[#FF375F]">{joinState.error}</p>}
       </form>
     </main>
   );

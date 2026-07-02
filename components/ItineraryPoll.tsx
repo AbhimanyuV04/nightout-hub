@@ -37,31 +37,37 @@ export default function ItineraryPoll({
   }
 
   return (
-    <section className="border p-4 space-y-2">
+    <section className="card space-y-3">
       <h2 className="font-semibold">Where to?</h2>
-      <ul className="space-y-1">
-        {!suggestions.length && <li className="text-sm">No suggestions yet</li>}
+      <ul className="space-y-2">
+        {!suggestions.length && <li className="muted text-sm">No suggestions yet</li>}
         {suggestions.map((s) => (
-          <li key={s.id} className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => vote(s.id, true)}
-              className="border px-2"
-            >
-              ▲
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => vote(s.id, false)}
-              className="border px-2"
-            >
-              ▼
-            </button>
-            <span>
-              {s.place_name} ({s.upvotes_count})
-            </span>
+          <li
+            key={s.id}
+            className="flex items-center justify-between gap-2 rounded-xl bg-[#111111] px-3 py-2"
+          >
+            <span>{s.place_name}</span>
+            <div className="flex items-center gap-2">
+              <span className="min-w-6 text-center font-semibold text-[#FF375F]">
+                {s.upvotes_count}
+              </span>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => vote(s.id, true)}
+                className="btn-ghost px-2.5 py-1"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => vote(s.id, false)}
+                className="btn-ghost px-2.5 py-1"
+              >
+                ▼
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -70,13 +76,13 @@ export default function ItineraryPoll({
           value={place}
           onChange={(e) => setPlace(e.target.value)}
           placeholder="Suggest a place"
-          className="border p-2 flex-1"
+          className="field flex-1"
         />
-        <button type="submit" disabled={pending} className="border p-2">
+        <button type="submit" disabled={pending} className="btn-primary w-auto px-5">
           Add
         </button>
       </form>
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-sm text-[#FF375F]">{error}</p>}
     </section>
   );
 }

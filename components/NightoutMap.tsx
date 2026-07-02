@@ -34,13 +34,18 @@ export default function NightoutMap({
 
   useEffect(() => {
     if (!mapDivRef.current || mapRef.current) return;
-    const map = L.map(mapDivRef.current).setView([20.5937, 78.9629], 5);
+    const container = mapDivRef.current;
+    const map = L.map(container).setView([20.5937, 78.9629], 5);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors",
       maxZoom: 19,
     }).addTo(map);
     mapRef.current = map;
+    // Map may init inside a hidden tab (0x0); fix size when the tab is revealed.
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
     return () => {
+      observer.disconnect();
       map.remove();
       mapRef.current = null;
       markersRef.current.clear();
@@ -128,22 +133,24 @@ export default function NightoutMap({
   }
 
   return (
-    <section className="border p-4 space-y-2">
-      <h2 className="font-semibold">Live map</h2>
+    <section className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="font-semibold">Live map</h2>
+        <span className="muted text-sm">{Object.keys(positions).length} sharing</span>
+      </div>
       {userId ? (
         <button
           type="button"
           onClick={sharing ? stopSharing : startSharing}
-          className="border p-2 w-full"
+          className={sharing ? "btn-ghost w-full py-3" : "btn-primary"}
         >
           {sharing ? "Stop Sharing Location" : "Start Sharing Location"}
         </button>
       ) : (
-        <p className="text-sm">Join this room to share your location</p>
+        <p className="muted text-sm">Join this room to share your location</p>
       )}
-      {error && <p className="text-red-600 text-sm">{error}</p>}
-      <div ref={mapDivRef} className="h-64 w-full" />
-      <p className="text-sm">{Object.keys(positions).length} sharing location</p>
+      {error && <p className="text-sm text-[#FF375F]">{error}</p>}
+      <div ref={mapDivRef} className="h-[60vh] w-full overflow-hidden rounded-xl" />
     </section>
   );
 }

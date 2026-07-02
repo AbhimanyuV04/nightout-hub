@@ -51,29 +51,37 @@ export default function VibeDashboard({
   }
 
   return (
-    <section className="border p-4 space-y-2">
+    <section className="card space-y-3">
       <h2 className="font-semibold">The vibe</h2>
-      <p>Dress code: {dressCode || "Not set"}</p>
-      <p>Countdown: {eventDate ? (remaining ?? "…") : "No date set"}</p>
+      <div className="space-y-1">
+        <p className="muted text-sm">Dress code</p>
+        <p className="text-lg">{dressCode || "Not set"}</p>
+      </div>
+      <div className="space-y-1">
+        <p className="muted text-sm">Countdown</p>
+        <p className="text-2xl font-semibold tracking-tight text-[#FF375F]">
+          {eventDate ? (remaining ?? "…") : "No date set"}
+        </p>
+      </div>
 
       {isHost && (
-        <form onSubmit={submit} className="space-y-2 border-t pt-2">
+        <form onSubmit={submit} className="space-y-3 border-t border-zinc-800 pt-3">
           <input
             name="dressCode"
             defaultValue={dressCode ?? ""}
             placeholder="Dress code"
-            className="border p-2 w-full"
+            className="field"
           />
           <input
             name="date"
             type="datetime-local"
             defaultValue={eventDate ? eventDate.slice(0, 16) : ""}
-            className="border p-2 w-full"
+            className="field [color-scheme:dark]"
           />
-          <button type="submit" disabled={pending} className="border p-2 w-full">
+          <button type="submit" disabled={pending} className="btn-primary">
             Save vibe
           </button>
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && <p className="text-sm text-[#FF375F]">{error}</p>}
         </form>
       )}
     </section>
