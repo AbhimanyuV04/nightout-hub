@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
 import ItineraryPoll from "./ItineraryPoll";
 import LocationShare from "./LocationShare";
@@ -69,71 +70,8 @@ export default function RoomDashboard({
       </header>
 
       <main className="mx-auto w-full max-w-md flex-1 px-4 pb-24 pt-4">
-        {/* Vibe */}
-        <div className={active === "vibe" ? "space-y-4" : "hidden"}>
-          <VibeDashboard
-            roomCode={roomCode}
-            dressCode={vibe?.dress_code ?? null}
-            eventDate={vibe?.event_date ?? null}
-            isHost={me?.is_host ?? false}
-          />
-          <ItineraryPoll roomCode={roomCode} suggestions={suggestions} />
-          <section className="card space-y-2">
-            <h2 className="font-semibold">Members</h2>
-            <ul className="space-y-1.5">
-              {members.map((u) => (
-                <li key={u.id} className="flex items-center justify-between">
-                  <span>{u.display_name}</span>
-                  {u.is_host && <span className="muted text-xs">host</span>}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-
-        {/* Split */}
-        <div className={active === "split" ? "space-y-4" : "hidden"}>
-          <AddExpenseForm roomId={roomId} roomCode={roomCode} members={members} />
-          <section className="card space-y-2">
-            <h2 className="font-semibold">Expenses</h2>
-            {!expenses.length && <p className="muted text-sm">Nothing yet</p>}
-            <ul className="space-y-2">
-              {expenses.map((e) => (
-                <li key={e.id} className="flex items-center justify-between gap-2">
-                  <span>
-                    {e.description}{" "}
-                    <span className="muted text-sm">· {nameById.get(e.paid_by_user_id) ?? "?"}</span>
-                  </span>
-                  <span className="font-medium">₹{Number(e.amount).toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section className="card space-y-2">
-            <h2 className="font-semibold">Who owes whom</h2>
-            {!debts.length && <p className="muted text-sm">All settled</p>}
-            <ul className="space-y-2">
-              {debts.map((d, i) => (
-                <li key={i} className="flex items-center justify-between gap-2">
-                  <span>
-                    {d.fromName} <span className="muted">→</span> {d.toName}{" "}
-                    <span className="font-medium">₹{d.amount.toFixed(2)}</span>
-                  </span>
-                  {d.upiLink && (
-                    <a
-                      href={d.upiLink}
-                      className="rounded-lg bg-[#FF375F] px-3 py-1 text-sm font-medium text-white active:scale-95 transition-all"
-                    >
-                      Pay
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
-
-        {/* Map — kept mounted so location sharing survives tab switches */}
+        {/* Map stays mounted across tab switches (outside AnimatePresence) so the realtime
+            channel + geolocation watch survive — unmounting it would drop live sharing. */}
         <div className={active === "map" ? "space-y-4" : "hidden"}>
           <LocationShare
             roomCode={roomCode}
@@ -142,47 +80,138 @@ export default function RoomDashboard({
           />
         </div>
 
-        {/* Media */}
-        <div className={active === "media" ? "space-y-4" : "hidden"}>
-          <MediaUpload roomCode={roomCode} />
-          <section className="card space-y-2">
-            <h2 className="font-semibold">Gallery</h2>
-            {!media.length && <p className="muted text-sm">No photos yet</p>}
-            <div className="grid grid-cols-3 gap-2">
-              {media.map((m) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={m.id}
-                  src={m.image_url}
-                  alt=""
-                  className="aspect-square w-full rounded-xl object-cover"
-                />
-              ))}
-            </div>
-          </section>
-        </div>
+        <AnimatePresence mode="wait">
+          {active !== "map" && (
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="space-y-4"
+            >
+              {active === "vibe" && (
+                <>
+                  <VibeDashboard
+                    roomCode={roomCode}
+                    dressCode={vibe?.dress_code ?? null}
+                    eventDate={vibe?.event_date ?? null}
+                    isHost={me?.is_host ?? false}
+                  />
+                  <ItineraryPoll roomCode={roomCode} suggestions={suggestions} />
+                  <section className="card space-y-2">
+                    <h2 className="font-semibold">Members</h2>
+                    <ul className="space-y-1.5">
+                      {members.map((u) => (
+                        <li key={u.id} className="flex items-center justify-between">
+                          <span>{u.display_name}</span>
+                          {u.is_host && <span className="muted text-xs">host</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </>
+              )}
 
-        {/* Quotes */}
-        <div className={active === "quotes" ? "space-y-4" : "hidden"}>
-          <QuoteBoard roomCode={roomCode} quotes={quotes} />
-        </div>
+              {active === "split" && (
+                <>
+                  <AddExpenseForm roomId={roomId} roomCode={roomCode} members={members} />
+                  <section className="card space-y-2">
+                    <h2 className="font-semibold">Expenses</h2>
+                    {!expenses.length && <p className="muted text-sm">Nothing yet</p>}
+                    <ul className="space-y-2">
+                      {expenses.map((e) => (
+                        <li key={e.id} className="flex items-center justify-between gap-2">
+                          <span>
+                            {e.description}{" "}
+                            <span className="muted text-sm">
+                              · {nameById.get(e.paid_by_user_id) ?? "?"}
+                            </span>
+                          </span>
+                          <span className="font-medium">₹{Number(e.amount).toFixed(2)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section className="card space-y-2">
+                    <h2 className="font-semibold">Who owes whom</h2>
+                    {!debts.length && <p className="muted text-sm">All settled</p>}
+                    <ul className="space-y-2">
+                      {debts.map((d, i) => (
+                        <li key={i} className="flex items-center justify-between gap-2">
+                          <span>
+                            {d.fromName} <span className="muted">→</span> {d.toName}{" "}
+                            <span className="font-medium">₹{d.amount.toFixed(2)}</span>
+                          </span>
+                          {d.upiLink && (
+                            <a
+                              href={d.upiLink}
+                              className="rounded-lg bg-[#FF375F] px-3 py-1 text-sm font-medium text-white transition-all active:scale-95"
+                            >
+                              Pay
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </>
+              )}
+
+              {active === "media" && (
+                <>
+                  <MediaUpload roomCode={roomCode} />
+                  <section className="card space-y-2">
+                    <h2 className="font-semibold">Gallery</h2>
+                    {!media.length && <p className="muted text-sm">No photos yet</p>}
+                    <div className="grid grid-cols-3 gap-2">
+                      {media.map((m, i) => (
+                        <motion.img
+                          key={m.id}
+                          src={m.image_url}
+                          alt=""
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
+                          className="aspect-square w-full rounded-xl object-cover"
+                        />
+                      ))}
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {active === "quotes" && <QuoteBoard roomCode={roomCode} quotes={quotes} />}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-zinc-800 bg-[#1C1C1E]/90 backdrop-blur-md">
         <div className="mx-auto grid h-full max-w-md grid-cols-5">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setActive(t.id)}
-              className={`flex flex-col items-center justify-center gap-1 text-[10px] transition-all active:scale-95 ${
-                active === t.id ? "text-[#FF375F]" : "text-[#8E8E93]"
-              }`}
-            >
-              {t.icon}
-              {t.label}
-            </button>
-          ))}
+          {tabs.map((t) => {
+            const isActive = active === t.id;
+            return (
+              <motion.button
+                key={t.id}
+                type="button"
+                onClick={() => setActive(t.id)}
+                whileTap={{ scale: 0.9 }}
+                className={`flex flex-col items-center justify-center gap-1 text-[10px] ${
+                  isActive ? "text-[#FF375F]" : "text-[#8E8E93]"
+                }`}
+              >
+                <motion.span
+                  animate={{ scale: isActive ? 1.15 : 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="flex items-center justify-center"
+                >
+                  {t.icon}
+                </motion.span>
+                {t.label}
+              </motion.button>
+            );
+          })}
         </div>
       </nav>
     </>

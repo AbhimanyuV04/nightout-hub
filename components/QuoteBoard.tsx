@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { addQuote } from "@/app/actions";
 
 type Quote = { id: string; quote_text: string; speaker_name: string };
@@ -31,12 +32,22 @@ export default function QuoteBoard({ roomCode, quotes }: { roomCode: string; quo
       <h2 className="font-semibold">Quote board</h2>
       <ul className="max-h-64 space-y-2 overflow-y-auto">
         {!quotes.length && <li className="muted text-sm">No quotes yet</li>}
-        {quotes.map((q) => (
-          <li key={q.id} className="rounded-xl bg-[#111111] px-3 py-2">
-            <p className="leading-snug">&ldquo;{q.quote_text}&rdquo;</p>
-            <p className="muted mt-1 text-sm">— {q.speaker_name}</p>
-          </li>
-        ))}
+        <AnimatePresence initial={false}>
+          {quotes.map((q) => (
+            <motion.li
+              key={q.id}
+              layout
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="overflow-hidden rounded-xl bg-[#111111] px-3 py-2"
+            >
+              <p className="leading-snug">&ldquo;{q.quote_text}&rdquo;</p>
+              <p className="muted mt-1 text-sm">— {q.speaker_name}</p>
+            </motion.li>
+          ))}
+        </AnimatePresence>
       </ul>
       <form onSubmit={submit} className="space-y-3">
         <input

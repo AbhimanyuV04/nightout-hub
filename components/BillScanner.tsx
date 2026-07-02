@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function BillScanner({ onAmount }: { onAmount: (amount: number) => void }) {
   const [status, setStatus] = useState("");
@@ -39,15 +40,19 @@ export default function BillScanner({ onAmount }: { onAmount: (amount: number) =
       {status && <p className="text-sm">{status}</p>}
       {candidates.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {candidates.map((n) => (
-            <button
+          {candidates.map((n, i) => (
+            <motion.button
               key={n}
               type="button"
               onClick={() => onAmount(n)}
+              initial={{ opacity: 0, x: -24, scale: 0.8 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20, delay: i * 0.05 }}
+              whileTap={{ scale: 0.9 }}
               className="btn-ghost text-sm"
             >
               ₹{n.toFixed(2)}
-            </button>
+            </motion.button>
           ))}
         </div>
       )}

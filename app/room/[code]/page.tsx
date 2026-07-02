@@ -1,8 +1,8 @@
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { getRoomDebts, getRoomMedia } from "@/app/actions";
 import RoomDashboard from "@/components/RoomDashboard";
 import { supabase } from "@/lib/supabase";
+import { getSupabaseServer } from "@/lib/supabaseServer";
 
 export default async function RoomPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -10,7 +10,7 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
 
   const { data: room } = await supabase
     .from("rooms")
-    .select("id, room_code, users(id, display_name, is_host)")
+    .select("id, room_code, users(id, display_name, is_host, auth_id)")
     .eq("room_code", roomCode)
     .eq("is_active", true)
     .single();
@@ -38,8 +38,11 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
         .order("created_at", { ascending: false }),
     ]);
 
-  const cookieUserId = (await cookies()).get("nightout_user_id")?.value;
-  const me = room.users.find((u) => u.id === cookieUserId) ?? null;
+  const supabaseAuth = await getSupabaseServer();
+  const {
+    data: { user },
+  } = await supabaseAuth.auth.getUser();
+  const me = user ? room.users.find((u) => u.auth_id === user.id) ?? null : null;
 
   return (
     <RoomDashboard
