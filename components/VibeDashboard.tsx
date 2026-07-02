@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { archiveRoom, updateRoomSettings } from "@/app/actions";
+import ConfirmDialog from "./ConfirmDialog";
 
 type Parts = { days: number; hours: number; mins: number; secs: number; done: boolean };
 
@@ -30,6 +31,7 @@ export default function VibeDashboard({
 }) {
   const [parts, setParts] = useState<Parts | null>(null);
   const [error, setError] = useState("");
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -55,10 +57,10 @@ export default function VibeDashboard({
     });
   }
 
-  function archive() {
-    if (!window.confirm("Archive this room? Members will lose access.")) return;
+  function doArchive() {
     startTransition(async () => {
       const res = await archiveRoom(roomCode);
+      setConfirmArchive(false);
       // Success redirects away; only an error returns here.
       setError(res?.error ?? "");
     });
@@ -118,7 +120,7 @@ export default function VibeDashboard({
           </form>
           <button
             type="button"
-            onClick={archive}
+            onClick={() => setConfirmArchive(true)}
             disabled={pending}
             className="btn-ghost w-full py-3 text-[#FF375F]"
           >
@@ -127,6 +129,16 @@ export default function VibeDashboard({
           {error && <p className="text-sm text-[#FF375F]">{error}</p>}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmArchive}
+        title="Archive this night?"
+        message="Members will lose access to this room. This can't be undone."
+        confirmLabel="Archive"
+        pending={pending}
+        onConfirm={doArchive}
+        onCancel={() => setConfirmArchive(false)}
+      />
     </section>
   );
 }
