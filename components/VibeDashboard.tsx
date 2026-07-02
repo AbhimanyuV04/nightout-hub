@@ -61,7 +61,7 @@ export default function VibeDashboard({
 
   return (
     <section className="card space-y-3">
-      <h2 className="font-semibold">The vibe</h2>
+      <h2 className="section-title">The vibe</h2>
       <div className="space-y-1">
         <p className="muted text-sm">Dress code</p>
         <p className="text-lg">{dressCode || "Not set"}</p>

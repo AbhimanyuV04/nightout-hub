@@ -101,7 +101,7 @@ export default function RoomDashboard({
                   />
                   <ItineraryPoll roomCode={roomCode} suggestions={suggestions} />
                   <section className="card space-y-2">
-                    <h2 className="font-semibold">Members</h2>
+                    <h2 className="section-title">Members</h2>
                     <ul className="space-y-1.5">
                       {members.map((u) => (
                         <li key={u.id} className="flex items-center justify-between">
@@ -118,7 +118,7 @@ export default function RoomDashboard({
                 <>
                   <AddExpenseForm roomId={roomId} roomCode={roomCode} members={members} />
                   <section className="card space-y-2">
-                    <h2 className="font-semibold">Expenses</h2>
+                    <h2 className="section-title">Expenses</h2>
                     {!expenses.length && <p className="muted text-sm">Nothing yet</p>}
                     <ul className="space-y-2">
                       {expenses.map((e) => (
@@ -135,7 +135,7 @@ export default function RoomDashboard({
                     </ul>
                   </section>
                   <section className="card space-y-2">
-                    <h2 className="font-semibold">Who owes whom</h2>
+                    <h2 className="section-title">Who owes whom</h2>
                     {!debts.length && <p className="muted text-sm">All settled</p>}
                     <ul className="space-y-2">
                       {debts.map((d, i) => (

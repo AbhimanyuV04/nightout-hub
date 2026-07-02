@@ -20,7 +20,7 @@ export default function AddExpenseForm({
 
   return (
     <form action={action} className="card space-y-3">
-      <h2 className="font-semibold">Add expense</h2>
+      <h2 className="section-title">Add expense</h2>
       <input type="hidden" name="roomId" value={roomId} />
       <input type="hidden" name="roomCode" value={roomCode} />
       <input name="description" placeholder="Description" required className="field" />

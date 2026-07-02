@@ -59,7 +59,9 @@ export default function Home() {
         <h1 className="text-4xl font-bold leading-tight tracking-tight">
           One night. One crew.
           <br />
-          <span className="text-[#FF375F]">Zero logistics.</span>
+          <span className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-transparent">
+            Zero logistics.
+          </span>
         </h1>
         <p className="muted text-base">
           Plan the vibe, split the bill, share the memories — all in a room that disappears after.
@@ -105,7 +107,7 @@ export default function Home() {
           </div>
 
           <form action={createAction} className="card space-y-3">
-            <h2 className="text-lg font-semibold">Create a NightOut</h2>
+            <h2 className="section-title">Create a NightOut</h2>
             <p className="muted text-sm">You&apos;ll host the room and get a code to share.</p>
             <input name="upi" placeholder="Your UPI ID (optional, e.g. name@bank)" className="field" />
             <button type="submit" disabled={creating} className="btn-primary">
@@ -121,7 +123,7 @@ export default function Home() {
           </div>
 
           <form action={joinAction} className="card space-y-3">
-            <h2 className="text-lg font-semibold">Join with Code</h2>
+            <h2 className="section-title">Join with Code</h2>
             <input
               name="code"
               placeholder="Room code (e.g. DXB492)"
