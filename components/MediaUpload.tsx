@@ -54,7 +54,7 @@ export default function MediaUpload({ roomCode }: { roomCode: string }) {
 
   return (
     <div className="card space-y-3">
-      <h2 className="font-semibold">Add photos</h2>
+      <h2 className="section-title">Add photos</h2>
       <input
         type="file"
         accept="image/*"

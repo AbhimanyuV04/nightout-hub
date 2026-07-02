@@ -29,7 +29,7 @@ export default function QuoteBoard({ roomCode, quotes }: { roomCode: string; quo
 
   return (
     <section className="card space-y-3">
-      <h2 className="font-semibold">Quote board</h2>
+      <h2 className="section-title">Quote board</h2>
       <ul className="max-h-64 space-y-2 overflow-y-auto">
         {!quotes.length && <li className="muted text-sm">No quotes yet</li>}
         <AnimatePresence initial={false}>

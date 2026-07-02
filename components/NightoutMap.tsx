@@ -135,7 +135,7 @@ export default function NightoutMap({
   return (
     <section className="card space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Live map</h2>
+        <h2 className="section-title">Live map</h2>
         <span className="muted text-sm">{Object.keys(positions).length} sharing</span>
       </div>
       {userId ? (

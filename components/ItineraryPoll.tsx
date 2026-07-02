@@ -79,7 +79,7 @@ export default function ItineraryPoll({
 
   return (
     <section className="card space-y-3">
-      <h2 className="font-semibold">Where to?</h2>
+      <h2 className="section-title">Where to?</h2>
       <ul className="space-y-2">
         {!suggestions.length && <li className="muted text-sm">No suggestions yet</li>}
         <AnimatePresence initial={false}>
