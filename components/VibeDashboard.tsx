@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { archiveRoom, updateRoomSettings } from "@/app/actions";
 
-function formatRemaining(ms: number): string {
-  if (ms <= 0) return "It's happening now!";
-  const s = Math.floor(ms / 1000);
-  const d = Math.floor(s / 86400);
-  const h = Math.floor((s % 86400) / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return `${d}d ${h}h ${m}m ${s % 60}s`;
+type Parts = { days: number; hours: number; mins: number; secs: number; done: boolean };
+
+function remainingParts(ms: number): Parts {
+  const s = Math.floor(Math.max(0, ms) / 1000);
+  return {
+    days: Math.floor(s / 86400),
+    hours: Math.floor((s % 86400) / 3600),
+    mins: Math.floor((s % 3600) / 60),
+    secs: s % 60,
+    done: ms <= 0,
+  };
 }
 
 export default function VibeDashboard({
@@ -23,17 +28,17 @@ export default function VibeDashboard({
   eventDate: string | null;
   isHost: boolean;
 }) {
-  const [remaining, setRemaining] = useState<string | null>(null);
+  const [parts, setParts] = useState<Parts | null>(null);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!eventDate) {
-      setRemaining(null);
+      setParts(null);
       return;
     }
     const target = new Date(eventDate).getTime();
-    const tick = () => setRemaining(formatRemaining(target - Date.now()));
+    const tick = () => setParts(remainingParts(target - Date.now()));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -60,17 +65,35 @@ export default function VibeDashboard({
   }
 
   return (
-    <section className="card space-y-3">
+    <section className="card space-y-4">
       <h2 className="section-title">The vibe</h2>
+
       <div className="space-y-1">
         <p className="muted text-sm">Dress code</p>
         <p className="text-lg">{dressCode || "Not set"}</p>
       </div>
-      <div className="space-y-1">
+
+      <div className="space-y-2">
         <p className="muted text-sm">Countdown</p>
-        <p className="text-2xl font-semibold tracking-tight text-[#FF375F]">
-          {eventDate ? (remaining ?? "…") : "No date set"}
-        </p>
+        {!eventDate ? (
+          <p className="text-lg text-[#8E8E93]">No date set</p>
+        ) : !parts ? (
+          <p className="muted text-lg">…</p>
+        ) : parts.done ? (
+          <p className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+            It&apos;s happening now! 🎉
+          </p>
+        ) : (
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#111111]/60 p-3">
+            <div className="pointer-events-none absolute -top-12 left-1/2 h-24 w-48 -translate-x-1/2 rounded-full bg-[#FF375F]/25 blur-3xl" />
+            <div className="relative grid grid-cols-4 gap-2">
+              <Unit value={parts.days} label="Days" />
+              <Unit value={parts.hours} label="Hrs" />
+              <Unit value={parts.mins} label="Min" />
+              <Unit value={parts.secs} label="Sec" live />
+            </div>
+          </div>
+        )}
       </div>
 
       {isHost && (
@@ -105,5 +128,35 @@ export default function VibeDashboard({
         </div>
       )}
     </section>
+  );
+}
+
+function Unit({ value, label, live }: { value: number; label: string; live?: boolean }) {
+  const text = String(value).padStart(2, "0");
+  const numberClass =
+    "bg-gradient-to-b from-white to-[#FF8FA3] bg-clip-text text-2xl font-bold tabular-nums text-transparent";
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex h-14 w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#1C1C1E]/70">
+        {live ? (
+          // Seconds tick with a subtle slide so the countdown feels alive.
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={text}
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 10, opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className={numberClass}
+            >
+              {text}
+            </motion.span>
+          </AnimatePresence>
+        ) : (
+          <span className={numberClass}>{text}</span>
+        )}
+      </div>
+      <span className="muted text-[10px] uppercase tracking-widest">{label}</span>
+    </div>
   );
 }
