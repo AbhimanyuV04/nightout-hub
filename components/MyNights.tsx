@@ -4,16 +4,19 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { hideNight, type NightSummary } from "@/app/actions";
+import ConfirmDialog from "./ConfirmDialog";
 
 export default function MyNights({ nights }: { nights: NightSummary[] }) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [target, setTarget] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function remove(roomCode: string) {
-    if (!window.confirm("Are you sure you want to delete these memories?")) return;
+  function confirmRemove() {
+    if (!target) return;
     startTransition(async () => {
-      const res = await hideNight(roomCode);
+      const res = await hideNight(target);
+      setTarget(null);
       if (res?.error) setError(res.error);
       else router.refresh();
     });
@@ -37,11 +40,21 @@ export default function MyNights({ nights }: { nights: NightSummary[] }) {
     <div className="space-y-6">
       {error && <p className="text-sm text-[#FF375F]">{error}</p>}
       {ongoing.length > 0 && (
-        <NightSection title="Ongoing" nights={ongoing} onRemove={remove} pending={pending} />
+        <NightSection title="Ongoing" nights={ongoing} onRemove={setTarget} pending={pending} />
       )}
       {past.length > 0 && (
-        <NightSection title="Past" nights={past} onRemove={remove} pending={pending} />
+        <NightSection title="Past" nights={past} onRemove={setTarget} pending={pending} />
       )}
+
+      <ConfirmDialog
+        open={target !== null}
+        title="Delete these memories?"
+        message="This removes the night from your list. Everyone else keeps their photos and this night's data."
+        confirmLabel="Delete"
+        pending={pending}
+        onConfirm={confirmRemove}
+        onCancel={() => setTarget(null)}
+      />
     </div>
   );
 }
