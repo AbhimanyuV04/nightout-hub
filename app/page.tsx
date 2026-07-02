@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
-import { createRoom, joinRoom } from "./actions";
 import { getSupabaseBrowser } from "@/lib/supabaseBrowser";
 
 const PILLARS = [
@@ -27,8 +27,6 @@ function nameFromSession(session: Session | null): string | null {
 export default function Home() {
   // undefined = still checking the session; null = signed out; string = signed-in name.
   const [name, setName] = useState<string | null | undefined>(undefined);
-  const [createState, createAction, creating] = useActionState(createRoom, null);
-  const [joinState, joinAction, joining] = useActionState(joinRoom, null);
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
@@ -52,6 +50,56 @@ export default function Home() {
     await getSupabaseBrowser().auth.signOut();
   }
 
+  if (name === undefined) {
+    return (
+      <main className="mx-auto w-full max-w-md px-5 py-12">
+        <div className="card h-40 animate-pulse" aria-hidden />
+      </main>
+    );
+  }
+
+  // Signed in → the hub: two doors, "My Nights" and "Tonight".
+  if (name) {
+    return (
+      <main className="mx-auto flex w-full max-w-md flex-col gap-8 px-5 py-12">
+        <header className="flex items-start justify-between">
+          <div>
+            <p className="muted text-xs uppercase tracking-[0.3em]">NightOut Hub</p>
+            <h1 className="text-3xl font-bold tracking-tight">Hey {name}</h1>
+          </div>
+          <button onClick={signOut} className="muted text-sm underline underline-offset-4">
+            Sign out
+          </button>
+        </header>
+
+        <div className="space-y-4">
+          <Link
+            href="/nights"
+            className="card flex items-center justify-between gap-3 transition-transform active:scale-[0.98]"
+          >
+            <div className="space-y-0.5">
+              <h2 className="section-title">My Nights</h2>
+              <p className="muted text-sm">Relive past nights and jump back into ongoing ones.</p>
+            </div>
+            <span aria-hidden className="text-2xl">🌙</span>
+          </Link>
+
+          <Link
+            href="/tonight"
+            className="card flex items-center justify-between gap-3 transition-transform active:scale-[0.98]"
+          >
+            <div className="space-y-0.5">
+              <h2 className="section-title">Tonight</h2>
+              <p className="muted text-sm">Start a new nightout or join with a code.</p>
+            </div>
+            <span aria-hidden className="text-2xl">🎉</span>
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // Signed out → the feature pitch + Google CTA.
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-10 px-5 py-12">
       <header className="space-y-3 text-center">
@@ -85,60 +133,13 @@ export default function Home() {
         ))}
       </section>
 
-      {name === undefined ? (
-        <div className="card h-14 animate-pulse" aria-hidden />
-      ) : name === null ? (
-        <button
-          onClick={signInWithGoogle}
-          className="btn-primary flex items-center justify-center gap-3"
-        >
-          <GoogleGlyph />
-          Continue with Google
-        </button>
-      ) : (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <p className="text-sm">
-              Signed in as <span className="font-semibold">{name}</span>
-            </p>
-            <button onClick={signOut} className="muted text-sm underline underline-offset-4">
-              Sign out
-            </button>
-          </div>
-
-          <form action={createAction} className="card space-y-3">
-            <h2 className="section-title">Create a NightOut</h2>
-            <p className="muted text-sm">You&apos;ll host the room and get a code to share.</p>
-            <input name="upi" placeholder="Your UPI ID (optional, e.g. name@bank)" className="field" />
-            <button type="submit" disabled={creating} className="btn-primary">
-              {creating ? "Creating..." : "Create a NightOut"}
-            </button>
-            {createState?.error && <p className="text-sm text-[#FF375F]">{createState.error}</p>}
-          </form>
-
-          <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-zinc-800" />
-            <span className="muted text-xs uppercase tracking-widest">or</span>
-            <span className="h-px flex-1 bg-zinc-800" />
-          </div>
-
-          <form action={joinAction} className="card space-y-3">
-            <h2 className="section-title">Join with Code</h2>
-            <input
-              name="code"
-              placeholder="Room code (e.g. DXB492)"
-              required
-              maxLength={6}
-              className="field uppercase tracking-[0.3em]"
-            />
-            <input name="upi" placeholder="Your UPI ID (optional, e.g. name@bank)" className="field" />
-            <button type="submit" disabled={joining} className="btn-primary">
-              {joining ? "Joining..." : "Join with Code"}
-            </button>
-            {joinState?.error && <p className="text-sm text-[#FF375F]">{joinState.error}</p>}
-          </form>
-        </section>
-      )}
+      <button
+        onClick={signInWithGoogle}
+        className="btn-primary flex items-center justify-center gap-3"
+      >
+        <GoogleGlyph />
+        Continue with Google
+      </button>
     </main>
   );
 }
