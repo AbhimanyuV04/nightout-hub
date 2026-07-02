@@ -386,3 +386,73 @@ export async function addQuote(
   revalidatePath(`/room/${roomCode.toUpperCase()}`);
   return null;
 }
+
+export type NightSummary = {
+  roomCode: string;
+  isActive: boolean;
+  isHost: boolean;
+  memberCount: number;
+  createdAt: string;
+};
+
+// Every night the current user belongs to (and hasn't removed from their list), ongoing
+// first then most-recent past.
+export async function getMyNights(): Promise<NightSummary[]> {
+  const auth = await getAuthUser();
+  if (!auth) return [];
+
+  const { data: memberships } = await supabase
+    .from("users")
+    .select("is_host, room_id, rooms!inner(room_code, is_active, created_at)")
+    .eq("auth_id", auth.authId)
+    .eq("hidden", false);
+  if (!memberships?.length) return [];
+
+  // One extra query for member counts (reliable; avoids embedded-count edge cases).
+  const roomIds = memberships.map((m) => m.room_id);
+  const { data: memberRows } = await supabase.from("users").select("room_id").in("room_id", roomIds);
+  const counts = new Map<string, number>();
+  for (const r of memberRows ?? []) counts.set(r.room_id, (counts.get(r.room_id) ?? 0) + 1);
+
+  const nights = memberships.map((m) => {
+    const room = m.rooms as unknown as {
+      room_code: string;
+      is_active: boolean;
+      created_at: string;
+    };
+    return {
+      roomCode: room.room_code,
+      isActive: room.is_active,
+      isHost: m.is_host,
+      memberCount: counts.get(m.room_id) ?? 0,
+      createdAt: room.created_at,
+    };
+  });
+
+  return nights.sort((a, b) =>
+    a.isActive === b.isActive ? b.createdAt.localeCompare(a.createdAt) : a.isActive ? -1 : 1
+  );
+}
+
+// Remove a night from the caller's own list (does not touch shared data — see 0007).
+export async function hideNight(roomCode: string): Promise<ActionState> {
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
+
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("id")
+    .eq("room_code", roomCode.toUpperCase())
+    .single();
+  if (!room) return { error: "Night not found" };
+
+  const { error } = await supabase
+    .from("users")
+    .update({ hidden: true })
+    .eq("auth_id", auth.authId)
+    .eq("room_id", room.id);
+  if (error) return { error: "Could not remove night" };
+
+  revalidatePath("/nights");
+  return null;
+}
