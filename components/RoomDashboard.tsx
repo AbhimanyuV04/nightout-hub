@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
@@ -74,11 +75,20 @@ export default function RoomDashboard({
     <>
       <header className="sticky top-0 z-40 border-b border-zinc-800 bg-[#111111]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-md items-center justify-between px-5 py-3">
-          <div>
-            <p className="muted text-xs uppercase tracking-widest">NightOut</p>
-            <h1 className="text-lg font-bold tracking-tight">
-              {activeLabel} · {roomCode}
-            </h1>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              aria-label="Back to home"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-[#1C1C1E] text-lg text-white active:scale-90"
+            >
+              ←
+            </Link>
+            <div>
+              <p className="muted text-xs uppercase tracking-widest">NightOut</p>
+              <h1 className="text-lg font-bold tracking-tight">
+                {activeLabel} · {roomCode}
+              </h1>
+            </div>
           </div>
           <span className="rounded-full bg-[#1C1C1E] px-3 py-1 text-sm text-[#8E8E93]">
             {members.length} in
