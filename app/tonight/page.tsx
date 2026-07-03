@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import { createRoom, joinRoom } from "../actions";
 
 export default function Tonight() {
@@ -11,9 +11,7 @@ export default function Tonight() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-5 py-12">
       <header className="space-y-1">
-        <Link href="/" className="muted text-sm">
-          ← Home
-        </Link>
+        <BackLink />
         <h1 className="text-3xl font-bold tracking-tight">Tonight</h1>
         <p className="muted">Start a new nightout or join an existing one.</p>
       </header>
