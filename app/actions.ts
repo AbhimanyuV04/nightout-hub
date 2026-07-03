@@ -449,7 +449,31 @@ export async function getMyNights(): Promise<NightSummary[]> {
   );
 }
 
-// Remove a night from the caller's own list (does not touch shared data — see 0007).
+const MEDIA_BUCKET = "nightout-media";
+
+// Once nobody has a night in their list anymore, it's abandoned — free its storage and DB.
+// Deleting the room cascades to users/expenses/media/etc; the storage files (not in the DB
+// cascade) are removed separately first.
+// ponytail: best-effort + racy under simultaneous deletes; fine for cleanup, not correctness.
+async function purgeRoomIfOrphaned(roomId: string, roomCode: string): Promise<void> {
+  const { count } = await supabase
+    .from("users")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", roomId)
+    .eq("hidden", false);
+  if ((count ?? 0) > 0) return; // still on someone's list — keep everything
+
+  const folder = roomCode.toUpperCase();
+  const { data: files } = await supabase.storage.from(MEDIA_BUCKET).list(folder);
+  if (files?.length) {
+    await supabase.storage.from(MEDIA_BUCKET).remove(files.map((f) => `${folder}/${f.name}`));
+  }
+
+  await supabase.from("rooms").delete().eq("id", roomId);
+}
+
+// Remove a night from the caller's own list (does not touch shared data — see 0007), then
+// purge the whole night if that was the last person holding it.
 export async function hideNight(roomCode: string): Promise<ActionState> {
   const auth = await getAuthUser();
   if (!auth) return { error: "Sign in with Google first" };
@@ -467,6 +491,8 @@ export async function hideNight(roomCode: string): Promise<ActionState> {
     .eq("auth_id", auth.authId)
     .eq("room_id", room.id);
   if (error) return { error: "Could not remove night" };
+
+  await purgeRoomIfOrphaned(room.id, roomCode);
 
   revalidatePath("/nights");
   return null;
