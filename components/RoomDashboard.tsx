@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import AddExpenseForm from "./AddExpenseForm";
-import EditMyName from "./EditMyName";
 import ItineraryPoll from "./ItineraryPoll";
 import LocationShare from "./LocationShare";
 import MediaGallery from "./MediaGallery";
@@ -110,9 +109,12 @@ export default function RoomDashboard({
               </h1>
             </div>
           </div>
-          <span className="rounded-full bg-[#1C1C1E] px-3 py-1 text-sm text-[#8E8E93]">
-            {members.length} in
-          </span>
+          <Link
+            href={`/room/${roomCode}/guests`}
+            className="rounded-full border border-white/10 bg-[#1C1C1E] px-3 py-1 text-sm text-[#8E8E93] transition active:scale-95"
+          >
+            {members.length} in →
+          </Link>
         </div>
       </header>
 
@@ -146,25 +148,6 @@ export default function RoomDashboard({
                     isHost={me?.is_host ?? false}
                   />
                   <ItineraryPoll roomCode={roomCode} suggestions={suggestions} />
-                  <section className="card space-y-2">
-                    <h2 className="section-title">Members</h2>
-                    <ul className="space-y-1.5">
-                      {members.map((u) => (
-                        <li key={u.id} className="flex items-center justify-between gap-2">
-                          <span>
-                            {u.display_name}
-                            {u.id === me?.id && <span className="muted text-xs"> (you)</span>}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {u.is_host && <span className="muted text-xs">host</span>}
-                            {u.id === me?.id && (
-                              <EditMyName roomCode={roomCode} currentName={u.display_name} />
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
                 </>
               )}
 
