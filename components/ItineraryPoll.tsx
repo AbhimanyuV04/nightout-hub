@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { addItinerarySuggestion, voteItinerary } from "@/app/actions";
+import { addItinerarySuggestion, deleteSuggestion, voteItinerary } from "@/app/actions";
 import type { DistanceResult } from "@/app/api/distance/route";
 import PlacePicker from "./PlacePicker";
 
@@ -12,15 +12,18 @@ type Suggestion = {
   upvotes_count: number;
   lat: number | null;
   lng: number | null;
+  created_by_user_id: string;
 };
 type PlaceInfo = { duration: string | null; distance: string | null };
 
 export default function ItineraryPoll({
   roomCode,
   suggestions,
+  me,
 }: {
   roomCode: string;
   suggestions: Suggestion[];
+  me: { id: string; is_host: boolean } | null;
 }) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
@@ -69,6 +72,10 @@ export default function ItineraryPoll({
     };
   }, [suggestions]);
 
+  function canDelete(s: Suggestion) {
+    return !!me && (me.is_host || s.created_by_user_id === me.id);
+  }
+
   function addSuggestion(name: string, coords: { lat: number; lng: number } | null) {
     startTransition(async () => {
       const res = await addItinerarySuggestion(roomCode, name, coords ?? undefined);
@@ -79,6 +86,13 @@ export default function ItineraryPoll({
   function vote(id: string, increment: boolean) {
     startTransition(async () => {
       const res = await voteItinerary(id, increment);
+      if (res?.error) setError(res.error);
+    });
+  }
+
+  function remove(id: string) {
+    startTransition(async () => {
+      const res = await deleteSuggestion(id);
       if (res?.error) setError(res.error);
     });
   }
@@ -132,6 +146,18 @@ export default function ItineraryPoll({
                   >
                     ▼
                   </motion.button>
+                  {canDelete(s) && (
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.85 }}
+                      disabled={pending}
+                      onClick={() => remove(s.id)}
+                      aria-label="Delete suggestion"
+                      className="btn-ghost px-2.5 py-1 text-[#FF375F]"
+                    >
+                      ✕
+                    </motion.button>
+                  )}
                 </div>
               </motion.li>
             );
