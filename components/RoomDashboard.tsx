@@ -22,6 +22,7 @@ type Suggestion = {
   upvotes_count: number;
   lat: number | null;
   lng: number | null;
+  created_by_user_id: string;
 };
 type Quote = { id: string; quote_text: string; speaker_name: string };
 
@@ -147,7 +148,7 @@ export default function RoomDashboard({
                     eventDate={vibe?.event_date ?? null}
                     isHost={me?.is_host ?? false}
                   />
-                  <ItineraryPoll roomCode={roomCode} suggestions={suggestions} />
+                  <ItineraryPoll roomCode={roomCode} suggestions={suggestions} me={me} />
                 </>
               )}
 

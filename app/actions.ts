@@ -404,6 +404,37 @@ export async function voteItinerary(suggestionId: string, increment: boolean): P
   return null;
 }
 
+// Delete a suggestion — only the room host or the person who added it may.
+export async function deleteSuggestion(suggestionId: string): Promise<ActionState> {
+  const auth = await getAuthUser();
+  if (!auth) return { error: "Sign in with Google first" };
+
+  const { data: suggestion } = await supabase
+    .from("itinerary_suggestions")
+    .select("created_by_user_id, room_id, rooms(room_code)")
+    .eq("id", suggestionId)
+    .single();
+  const room = suggestion?.rooms as unknown as { room_code: string } | null;
+  if (!suggestion || !room) return { error: "Suggestion not found" };
+
+  const { data: member } = await supabase
+    .from("users")
+    .select("id, is_host")
+    .eq("auth_id", auth.authId)
+    .eq("room_id", suggestion.room_id)
+    .single();
+  if (!member) return { error: "You are not in this room" };
+  if (!member.is_host && member.id !== suggestion.created_by_user_id) {
+    return { error: "Only the host or whoever added it can delete this" };
+  }
+
+  const { error } = await supabase.from("itinerary_suggestions").delete().eq("id", suggestionId);
+  if (error) return { error: "Could not delete suggestion" };
+
+  revalidatePath(`/room/${room.room_code}`);
+  return null;
+}
+
 export async function addQuote(
   roomCode: string,
   quoteText: string,
