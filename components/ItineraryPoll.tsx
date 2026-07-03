@@ -4,8 +4,15 @@ import { useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { addItinerarySuggestion, voteItinerary } from "@/app/actions";
 import type { DistanceResult } from "@/app/api/distance/route";
+import PlacePicker from "./PlacePicker";
 
-type Suggestion = { id: string; place_name: string; upvotes_count: number };
+type Suggestion = {
+  id: string;
+  place_name: string;
+  upvotes_count: number;
+  lat: number | null;
+  lng: number | null;
+};
 type PlaceInfo = { duration: string | null; distance: string | null };
 
 export default function ItineraryPoll({
@@ -15,16 +22,15 @@ export default function ItineraryPoll({
   roomCode: string;
   suggestions: Suggestion[];
 }) {
-  const [place, setPlace] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
-  // place_name -> { duration, distance }. Empty until location resolves and /api/distance answers.
+  // suggestion.id -> { duration, distance }. Empty until location resolves and OSRM answers.
   const [info, setInfo] = useState<Record<string, PlaceInfo>>({});
 
   useEffect(() => {
-    if (!suggestions.length || !("geolocation" in navigator)) return;
+    const located = suggestions.filter((s) => s.lat != null && s.lng != null);
+    if (!located.length || !("geolocation" in navigator)) return;
     let cancelled = false;
-    const names = suggestions.map((s) => s.place_name);
 
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
@@ -34,18 +40,19 @@ export default function ItineraryPoll({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               origin: { lat: coords.latitude, lng: coords.longitude },
-              destinations: names,
+              destinations: located.map((s) => ({ lat: s.lat, lng: s.lng })),
             }),
           });
           if (!res.ok) return;
           const data: { results?: DistanceResult[] } = await res.json();
           if (cancelled || !data.results) return;
           const map: Record<string, PlaceInfo> = {};
-          for (const r of data.results) {
-            if (r.durationText || r.distanceText) {
-              map[r.destination] = { duration: r.durationText, distance: r.distanceText };
+          data.results.forEach((r, i) => {
+            const s = located[i];
+            if (s && (r.durationText || r.distanceText)) {
+              map[s.id] = { duration: r.durationText, distance: r.distanceText };
             }
-          }
+          });
           setInfo(map);
         } catch {
           // network / API failure — leave the sublines empty
@@ -62,16 +69,10 @@ export default function ItineraryPoll({
     };
   }, [suggestions]);
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    const value = place;
+  function addSuggestion(name: string, coords: { lat: number; lng: number } | null) {
     startTransition(async () => {
-      const res = await addItinerarySuggestion(roomCode, value);
-      if (res?.error) setError(res.error);
-      else {
-        setError("");
-        setPlace("");
-      }
+      const res = await addItinerarySuggestion(roomCode, name, coords ?? undefined);
+      setError(res?.error ?? "");
     });
   }
 
@@ -89,7 +90,7 @@ export default function ItineraryPoll({
         {!suggestions.length && <li className="muted text-sm">No suggestions yet</li>}
         <AnimatePresence initial={false}>
           {suggestions.map((s) => {
-            const pi = info[s.place_name];
+            const pi = info[s.id];
             return (
               <motion.li
                 key={s.id}
@@ -137,17 +138,7 @@ export default function ItineraryPoll({
           })}
         </AnimatePresence>
       </ul>
-      <form onSubmit={submit} className="flex gap-2">
-        <input
-          value={place}
-          onChange={(e) => setPlace(e.target.value)}
-          placeholder="Suggest a place"
-          className="field flex-1"
-        />
-        <button type="submit" disabled={pending} className="btn-primary w-auto px-5">
-          Add
-        </button>
-      </form>
+      <PlacePicker onSubmit={addSuggestion} pending={pending} />
       {error && <p className="text-sm text-[#FF375F]">{error}</p>}
     </section>
   );

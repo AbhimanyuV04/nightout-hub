@@ -17,7 +17,13 @@ type Member = { id: string; display_name: string; is_host: boolean };
 type Expense = { id: string; description: string; amount: number | string; paid_by_user_id: string };
 type Debt = { fromName: string; toName: string; amount: number; upiLink: string | null };
 type MediaItem = { id: string; image_url: string; user_id: string };
-type Suggestion = { id: string; place_name: string; upvotes_count: number };
+type Suggestion = {
+  id: string;
+  place_name: string;
+  upvotes_count: number;
+  lat: number | null;
+  lng: number | null;
+};
 type Quote = { id: string; quote_text: string; speaker_name: string };
 
 type Tab = "vibe" | "split" | "map" | "media" | "quotes";

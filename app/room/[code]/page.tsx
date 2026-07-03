@@ -28,7 +28,7 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
       supabase.from("vibe_check").select("dress_code, event_date").eq("room_id", room.id).maybeSingle(),
       supabase
         .from("itinerary_suggestions")
-        .select("id, place_name, upvotes_count")
+        .select("id, place_name, upvotes_count, lat, lng")
         .eq("room_id", room.id)
         .order("upvotes_count", { ascending: false }),
       supabase

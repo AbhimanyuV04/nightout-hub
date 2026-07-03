@@ -331,7 +331,11 @@ export async function archiveRoom(roomCode: string): Promise<ActionState> {
   redirect("/");
 }
 
-export async function addItinerarySuggestion(roomCode: string, placeName: string): Promise<ActionState> {
+export async function addItinerarySuggestion(
+  roomCode: string,
+  placeName: string,
+  coords?: { lat: number; lng: number }
+): Promise<ActionState> {
   const place = placeName.trim();
   if (!place) return { error: "Place name is required" };
 
@@ -342,6 +346,8 @@ export async function addItinerarySuggestion(roomCode: string, placeName: string
     room_id: member.roomId,
     created_by_user_id: member.userId,
     place_name: place,
+    lat: coords?.lat ?? null,
+    lng: coords?.lng ?? null,
   });
   if (error) return { error: "Could not add suggestion" };
 
