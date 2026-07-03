@@ -50,10 +50,12 @@ body {
     @apply rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white backdrop-blur-md
       transition-all active:scale-95 disabled:opacity-50;
   }
-  /* Small glass pill for inline actions / nav (Settings, Sign out, Back, edit…). */
+  /* Glowing accent pill for inline actions / nav (Settings, Sign out, Back, edit…) —
+     matches the room's "Nights" nav pill. */
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5
-      text-sm font-medium text-[#8E8E93] backdrop-blur-md transition hover:text-white active:scale-95;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-[#FF375F]/40 bg-[#FF375F]/10
+      px-3 py-1.5 text-sm font-semibold text-[#FF375F] shadow-[0_0_14px_-3px_rgba(255,55,95,0.55)]
+      backdrop-blur-md transition hover:bg-[#FF375F]/20 active:scale-95;
   }
   .muted {
     @apply text-[#8E8E93];
