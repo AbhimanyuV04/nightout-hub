@@ -349,29 +349,50 @@ export async function addItinerarySuggestion(roomCode: string, placeName: string
   return null;
 }
 
-// ponytail: read-modify-write; move to an atomic RPC if concurrent votes race
+// One upvote per person per place: ▲ records the caller's vote (idempotent via the composite
+// PK), ▼ removes it. upvotes_count is then recomputed from the real number of distinct voters.
 export async function voteItinerary(suggestionId: string, increment: boolean): Promise<ActionState> {
   const auth = await getAuthUser();
   if (!auth) return { error: "Sign in with Google first" };
 
   const { data: suggestion } = await supabase
     .from("itinerary_suggestions")
-    .select("upvotes_count, rooms(room_code, users(auth_id))")
+    .select("room_id, rooms(room_code)")
     .eq("id", suggestionId)
     .single();
-  const room = suggestion?.rooms as unknown as {
-    room_code: string;
-    users: { auth_id: string | null }[];
-  } | null;
+  const room = suggestion?.rooms as unknown as { room_code: string } | null;
   if (!suggestion || !room) return { error: "Suggestion not found" };
-  if (!room.users.some((u) => u.auth_id === auth.authId)) return { error: "You are not in this room" };
 
-  const next = Math.max(0, suggestion.upvotes_count + (increment ? 1 : -1));
-  const { error } = await supabase
+  const { data: member } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_id", auth.authId)
+    .eq("room_id", suggestion.room_id)
+    .single();
+  if (!member) return { error: "You are not in this room" };
+
+  if (increment) {
+    // 23505 (unique violation) = already upvoted; treat as a no-op, not an error.
+    const { error } = await supabase
+      .from("itinerary_votes")
+      .insert({ suggestion_id: suggestionId, user_id: member.id });
+    if (error && error.code !== "23505") return { error: "Could not vote" };
+  } else {
+    await supabase
+      .from("itinerary_votes")
+      .delete()
+      .eq("suggestion_id", suggestionId)
+      .eq("user_id", member.id);
+  }
+
+  const { count } = await supabase
+    .from("itinerary_votes")
+    .select("suggestion_id", { count: "exact", head: true })
+    .eq("suggestion_id", suggestionId);
+  await supabase
     .from("itinerary_suggestions")
-    .update({ upvotes_count: next })
+    .update({ upvotes_count: count ?? 0 })
     .eq("id", suggestionId);
-  if (error) return { error: "Could not vote" };
 
   revalidatePath(`/room/${room.room_code}`);
   return null;
