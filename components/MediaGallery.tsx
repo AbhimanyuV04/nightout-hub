@@ -8,8 +8,6 @@ type Member = { id: string; display_name: string };
 
 type Group = { userId: string; name: string; items: MediaItem[] };
 
-// Group photos by uploader, preserving the incoming (most-recent-first) order both for
-// groups and for tiles within a group.
 function groupByUploader(media: MediaItem[], members: Member[]): Group[] {
   const nameById = new Map(members.map((m) => [m.id, m.display_name]));
   const order: string[] = [];
@@ -28,6 +26,32 @@ function groupByUploader(media: MediaItem[], members: Member[]): Group[] {
   }));
 }
 
+// Force a real download of a cross-origin Storage URL (the `download` attr is ignored
+// cross-origin, so fetch the blob first). Falls back to opening the image if fetch fails.
+async function downloadOne(url: string, filename: string) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
+async function downloadGroup(g: Group) {
+  const safe = g.name.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "nightout";
+  for (let i = 0; i < g.items.length; i++) {
+    await downloadOne(g.items[i].image_url, `${safe}-${i + 1}.jpg`);
+  }
+}
+
 export default function MediaGallery({
   media,
   members,
@@ -38,7 +62,6 @@ export default function MediaGallery({
   const [lightbox, setLightbox] = useState<string | null>(null);
   const groups = groupByUploader(media, members);
 
-  // Close the lightbox on Escape.
   useEffect(() => {
     if (!lightbox) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setLightbox(null);
@@ -64,37 +87,54 @@ export default function MediaGallery({
           transition={{ type: "spring", stiffness: 260, damping: 26 }}
           className="relative space-y-3 overflow-hidden rounded-2xl border border-white/10 bg-[#1C1C1E]/60 p-4 shadow-lg shadow-black/40 backdrop-blur-xl"
         >
-          {/* accent glow */}
           <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#FF375F]/25 blur-3xl" />
-          <h3 className="relative text-lg font-semibold tracking-tight">
-            The night from{" "}
-            <span className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-transparent">
-              {`${g.name}’s`}
-            </span>{" "}
-            eyes
-          </h3>
+          <div className="relative flex items-center justify-between gap-2">
+            <h3 className="text-lg font-semibold tracking-tight">
+              The night from{" "}
+              <span className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-transparent">
+                {`${g.name}’s`}
+              </span>{" "}
+              eyes
+            </h3>
+            <button
+              type="button"
+              onClick={() => downloadGroup(g)}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md transition active:scale-95"
+            >
+              <DownloadIcon className="h-3.5 w-3.5" />
+              All
+            </button>
+          </div>
           <div className="relative grid grid-cols-3 gap-2">
             {g.items.map((m, i) => (
-              <motion.img
-                key={m.id}
-                src={m.image_url}
-                alt={`Photo from ${g.name}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => setLightbox(m.image_url)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setLightbox(m.image_url);
-                  }
-                }}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
-                className="aspect-square w-full cursor-pointer rounded-xl object-cover ring-1 ring-white/5"
-              />
+              <div key={m.id} className="relative">
+                <motion.img
+                  src={m.image_url}
+                  alt={`Photo from ${g.name}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setLightbox(m.image_url)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setLightbox(m.image_url);
+                    }
+                  }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: i * 0.04, ease: "easeOut" }}
+                  className="aspect-square w-full cursor-pointer rounded-xl object-cover ring-1 ring-white/5"
+                />
+                <button
+                  type="button"
+                  onClick={() => downloadOne(m.image_url, `${g.name.replace(/[^a-z0-9]+/gi, "-")}-${i + 1}.jpg`)}
+                  aria-label="Download photo"
+                  className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-90"
+                >
+                  <DownloadIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
             ))}
           </div>
         </motion.section>
@@ -121,6 +161,17 @@ export default function MediaGallery({
             />
             <button
               type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (lightbox) downloadOne(lightbox, "nightout-photo.jpg");
+              }}
+              aria-label="Download photo"
+              className="absolute right-16 top-5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur-md active:scale-90"
+            >
+              <DownloadIcon className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
               onClick={() => setLightbox(null)}
               aria-label="Close photo"
               className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-xl text-white backdrop-blur-md active:scale-90"
@@ -131,5 +182,24 @@ export default function MediaGallery({
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 3v12" />
+      <path d="m7 11 5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
   );
 }
