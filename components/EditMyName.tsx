@@ -35,7 +35,7 @@ export default function EditMyName({
           setError("");
           setEditing(true);
         }}
-        className="muted text-xs underline underline-offset-2"
+        className="pill"
       >
         edit
       </button>
@@ -68,7 +68,7 @@ export default function EditMyName({
         type="button"
         onClick={() => setEditing(false)}
         aria-label="Cancel"
-        className="muted px-1 text-xs"
+        className="btn-ghost px-2 py-1 text-xs"
       >
         ✕
       </button>
