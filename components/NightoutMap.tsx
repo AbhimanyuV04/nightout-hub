@@ -36,9 +36,11 @@ export default function NightoutMap({
     if (!mapDivRef.current || mapRef.current) return;
     const container = mapDivRef.current;
     const map = L.map(container).setView([20.5937, 78.9629], 5);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-      maxZoom: 19,
+    // Dark basemap (CARTO) so the map matches the app instead of a white slab on black.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap &copy; CARTO",
+      subdomains: "abcd",
+      maxZoom: 20,
     }).addTo(map);
     mapRef.current = map;
     // Map may init inside a hidden tab (0x0); fix size when the tab is revealed.
@@ -77,8 +79,18 @@ export default function NightoutMap({
       else
         markersRef.current.set(
           id,
-          L.circleMarker([pos.lat, pos.lng], { radius: 8 })
-            .bindTooltip(pos.name, { permanent: true, direction: "top" })
+          L.circleMarker([pos.lat, pos.lng], {
+            radius: 7,
+            color: "#FF375F",
+            weight: 2,
+            fillColor: "#FF375F",
+            fillOpacity: 0.9,
+          })
+            .bindTooltip(pos.name, {
+              permanent: true,
+              direction: "top",
+              className: "nightout-label",
+            })
             .addTo(map)
         );
     }

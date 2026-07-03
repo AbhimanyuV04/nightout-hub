@@ -54,3 +54,34 @@ body {
     @apply text-[#8E8E93];
   }
 }
+
+/* Leaflet dark-theme tweaks (map lives in components/NightoutMap.tsx). */
+.leaflet-container {
+  background: #111111;
+}
+.leaflet-tooltip.nightout-label {
+  background: #1c1c1e;
+  border: 1px solid rgba(255, 55, 95, 0.5);
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+.leaflet-tooltip.nightout-label::before {
+  display: none; /* drop the light callout arrow that clashes on dark */
+}
+.leaflet-control-attribution {
+  background: rgba(28, 28, 30, 0.75) !important;
+  color: #8e8e93 !important;
+}
+.leaflet-control-attribution a {
+  color: #a0a0a6 !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: #1c1c1e;
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
