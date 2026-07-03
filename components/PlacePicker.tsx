@@ -3,9 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 
 type LatLng = { lat: number; lng: number };
-type Prediction = { name: string; label: string; lat: number; lng: number };
+type Prediction = { name: string; label: string; picked: string; lat: number; lng: number };
 type PhotonFeature = {
-  properties?: { name?: string; city?: string; state?: string; country?: string };
+  properties?: {
+    name?: string;
+    street?: string;
+    district?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    locality?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
   geometry?: { coordinates?: [number, number] };
 };
 
@@ -67,8 +77,15 @@ export default function PlacePicker({
           .map((f) => {
             const p = f.properties ?? {};
             const c = f.geometry?.coordinates;
-            const label = [p.name, p.city, p.state, p.country].filter(Boolean).join(", ");
-            return { name: p.name ?? label, label, lat: c?.[1] ?? NaN, lng: c?.[0] ?? NaN };
+            // The neighbourhood/area (Indiranagar, Koramangala…) is what disambiguates —
+            // show that + city, and drop the obvious state/country.
+            const area = p.district || p.suburb || p.neighbourhood || p.locality || p.street || "";
+            const label =
+              [area, p.city].filter(Boolean).join(", ") ||
+              [p.state, p.country].filter(Boolean).join(", ");
+            const name = p.name || area || p.city || label;
+            const picked = [p.name, area].filter(Boolean).join(", ") || name;
+            return { name, label, picked, lat: c?.[1] ?? NaN, lng: c?.[0] ?? NaN };
           })
           .filter((x) => Number.isFinite(x.lat) && Number.isFinite(x.lng) && x.label);
         // Drop far-away matches when we know where the user is.
@@ -85,7 +102,7 @@ export default function PlacePicker({
   }, [query, coords, userLoc]);
 
   function pick(p: Prediction) {
-    setQuery(p.label);
+    setQuery(p.picked);
     setCoords({ lat: p.lat, lng: p.lng });
     setPreds([]);
     setOpen(false);
