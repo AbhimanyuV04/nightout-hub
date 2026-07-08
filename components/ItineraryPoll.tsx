@@ -72,6 +72,10 @@ export default function ItineraryPoll({
     };
   }, [suggestions]);
 
+  // Live poll feel: each row gets a vote-share bar; the leader wears the crown.
+  const maxVotes = Math.max(1, ...suggestions.map((s) => s.upvotes_count));
+  const hasLeader = suggestions.some((s) => s.upvotes_count > 0);
+
   function canDelete(s: Suggestion) {
     return !!me && (me.is_host || s.created_by_user_id === me.id);
   }
@@ -115,8 +119,12 @@ export default function ItineraryPoll({
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 className="relative flex items-center justify-between gap-2 overflow-hidden rounded-xl bg-[#111111] py-2 pl-3 pr-6"
               >
+                <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="block truncate">{s.place_name}</span>
+                  <span className="block truncate">
+                    {hasLeader && s.upvotes_count === maxVotes && <span aria-hidden>👑 </span>}
+                    {s.place_name}
+                  </span>
                   {pi?.duration && (
                     <span className="muted text-xs">
                       {pi.duration} away

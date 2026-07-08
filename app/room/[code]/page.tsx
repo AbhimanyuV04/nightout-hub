@@ -16,8 +16,15 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
     .single();
   if (!room) notFound();
 
-  const [{ data: expenses }, debts, media, { data: vibe }, { data: suggestions }, { data: quotes }] =
-    await Promise.all([
+  const [
+    { data: expenses },
+    debts,
+    media,
+    { data: vibe },
+    { data: suggestions },
+    { data: quotes },
+    { data: reactions },
+  ] = await Promise.all([
       supabase
         .from("expenses")
         .select("id, description, amount, paid_by_user_id, created_at")
@@ -36,6 +43,10 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
         .select("id, quote_text, speaker_name")
         .eq("room_id", room.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("reactions")
+        .select("target_type, target_id, emoji, user_id")
+        .eq("room_id", room.id),
     ]);
 
   const supabaseAuth = await getSupabaseServer();
@@ -56,6 +67,7 @@ export default async function RoomPage({ params }: { params: Promise<{ code: str
       expenses={expenses ?? []}
       debts={debts}
       media={media}
+      reactions={reactions ?? []}
     />
   );
 }

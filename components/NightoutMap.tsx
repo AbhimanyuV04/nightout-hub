@@ -11,6 +11,14 @@ type Positions = Record<string, { lat: number; lng: number; name: string }>;
 
 const BROADCAST_INTERVAL_MS = 2000;
 
+// Pulsing "live" dot (styles in globals.css) — this file only runs client-side (dynamic ssr:false).
+const pulseIcon = L.divIcon({
+  className: "",
+  html: '<span class="pulse-dot"></span>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
 export default function NightoutMap({
   roomCode,
   userId,
@@ -22,7 +30,7 @@ export default function NightoutMap({
 }) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef(new Map<string, L.CircleMarker>());
+  const markersRef = useRef(new Map<string, L.Marker>());
   const channelRef = useRef<RealtimeChannel | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastSentRef = useRef(0);
@@ -79,13 +87,7 @@ export default function NightoutMap({
       else
         markersRef.current.set(
           id,
-          L.circleMarker([pos.lat, pos.lng], {
-            radius: 7,
-            color: "#FF375F",
-            weight: 2,
-            fillColor: "#FF375F",
-            fillOpacity: 0.9,
-          })
+          L.marker([pos.lat, pos.lng], { icon: pulseIcon })
             .bindTooltip(pos.name, {
               permanent: true,
               direction: "top",

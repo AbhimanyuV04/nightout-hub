@@ -3,10 +3,22 @@
 import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { addQuote } from "@/app/actions";
+import Reactions from "./Reactions";
 
 type Quote = { id: string; quote_text: string; speaker_name: string };
+type Reaction = { target_id: string; emoji: string; user_id: string };
 
-export default function QuoteBoard({ roomCode, quotes }: { roomCode: string; quotes: Quote[] }) {
+export default function QuoteBoard({
+  roomCode,
+  quotes,
+  meId,
+  reactions,
+}: {
+  roomCode: string;
+  quotes: Quote[];
+  meId: string | null;
+  reactions: Reaction[];
+}) {
   const [text, setText] = useState("");
   const [speaker, setSpeaker] = useState("");
   const [error, setError] = useState("");
@@ -45,6 +57,15 @@ export default function QuoteBoard({ roomCode, quotes }: { roomCode: string; quo
             >
               <p className="leading-snug">&ldquo;{q.quote_text}&rdquo;</p>
               <p className="muted mt-1 text-sm">— {q.speaker_name}</p>
+              <div className="mt-2">
+                <Reactions
+                  roomCode={roomCode}
+                  targetType="quote"
+                  targetId={q.id}
+                  reactions={reactions.filter((r) => r.target_id === q.id)}
+                  meId={meId}
+                />
+              </div>
             </motion.li>
           ))}
         </AnimatePresence>

@@ -4,6 +4,7 @@ import { randomInt } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { evenSplit, simplifyDebts } from "@/lib/debtEngine";
+import { REACTION_EMOJI } from "@/lib/reactions";
 import { supabase } from "@/lib/supabase";
 import { getSupabaseServer } from "@/lib/supabaseServer";
 import { upiPayLink, VPA_REGEX } from "@/lib/upi";
@@ -432,6 +433,52 @@ export async function deleteSuggestion(suggestionId: string): Promise<ActionStat
   if (error) return { error: "Could not delete suggestion" };
 
   revalidatePath(`/room/${room.room_code}`);
+  return null;
+}
+
+// Toggle an emoji reaction on a photo or quote: insert, and on 23505 (already reacted)
+// delete instead. The composite PK is what makes the toggle race-safe.
+export async function toggleReaction(
+  roomCode: string,
+  targetType: "media" | "quote",
+  targetId: string,
+  emoji: string
+): Promise<ActionState> {
+  if (!(REACTION_EMOJI as readonly string[]).includes(emoji)) return { error: "Invalid reaction" };
+
+  const member = await resolveMember(roomCode);
+  if ("error" in member) return member;
+
+  // The target must live in this room — stops cross-room reactions.
+  const table = targetType === "media" ? "room_media" : "quote_board";
+  const { data: target } = await supabase
+    .from(table)
+    .select("id")
+    .eq("id", targetId)
+    .eq("room_id", member.roomId)
+    .single();
+  if (!target) return { error: "Not found in this room" };
+
+  const { error } = await supabase.from("reactions").insert({
+    room_id: member.roomId,
+    target_type: targetType,
+    target_id: targetId,
+    user_id: member.userId,
+    emoji,
+  });
+  if (error?.code === "23505") {
+    await supabase
+      .from("reactions")
+      .delete()
+      .eq("target_type", targetType)
+      .eq("target_id", targetId)
+      .eq("user_id", member.userId)
+      .eq("emoji", emoji);
+  } else if (error) {
+    return { error: "Could not react" };
+  }
+
+  revalidatePath(`/room/${roomCode.toUpperCase()}`);
   return null;
 }
 
