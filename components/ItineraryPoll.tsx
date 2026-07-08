@@ -117,7 +117,7 @@ export default function ItineraryPoll({
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="overflow-hidden rounded-xl bg-[#111111] px-3 py-2"
+                className="relative flex items-center justify-between gap-2 overflow-hidden rounded-xl bg-[#111111] py-2 pl-3 pr-6"
               >
                 <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -154,27 +154,18 @@ export default function ItineraryPoll({
                   >
                     ▼
                   </motion.button>
-                  {canDelete(s) && (
-                    <motion.button
-                      type="button"
-                      whileTap={{ scale: 0.85 }}
-                      disabled={pending}
-                      onClick={() => remove(s.id)}
-                      aria-label="Delete suggestion"
-                      className="btn-ghost px-2.5 py-1 text-[#FF375F]"
-                    >
-                      ✕
-                    </motion.button>
-                  )}
                 </div>
-                </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
-                  <motion.div
-                    animate={{ width: `${(s.upvotes_count / maxVotes) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#FF375F] to-[#FF8FA3]"
-                  />
-                </div>
+                {canDelete(s) && (
+                  <button
+                    type="button"
+                    onClick={() => remove(s.id)}
+                    disabled={pending}
+                    aria-label="Delete suggestion"
+                    className="absolute right-1.5 top-1.5 text-xs leading-none text-[#8E8E93] transition hover:text-[#FF375F] active:scale-90"
+                  >
+                    ✕
+                  </button>
+                )}
               </motion.li>
             );
           })}
