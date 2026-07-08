@@ -117,43 +117,51 @@ export default function ItineraryPoll({
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="relative flex items-center justify-between gap-2 overflow-hidden rounded-xl bg-[#111111] py-2 pl-3 pr-6"
+                className="relative overflow-hidden rounded-xl bg-[#111111] py-2 pl-3 pr-6"
               >
                 <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="block truncate">
-                    {hasLeader && s.upvotes_count === maxVotes && <span aria-hidden>👑 </span>}
-                    {s.place_name}
-                  </span>
-                  {pi?.duration && (
-                    <span className="muted text-xs">
-                      {pi.duration} away
-                      {pi.distance ? ` • ${pi.distance}` : ""}
+                  <div className="min-w-0">
+                    <span className="block truncate">
+                      {hasLeader && s.upvotes_count === maxVotes && <span aria-hidden>👑 </span>}
+                      {s.place_name}
                     </span>
-                  )}
+                    {pi?.duration && (
+                      <span className="muted text-xs">
+                        {pi.duration} away
+                        {pi.distance ? ` • ${pi.distance}` : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="min-w-6 text-center font-semibold text-[#FF375F]">
+                      {s.upvotes_count}
+                    </span>
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.85 }}
+                      disabled={pending}
+                      onClick={() => vote(s.id, true)}
+                      className="btn-ghost px-2.5 py-1"
+                    >
+                      ▲
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.85 }}
+                      disabled={pending}
+                      onClick={() => vote(s.id, false)}
+                      className="btn-ghost px-2.5 py-1"
+                    >
+                      ▼
+                    </motion.button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="min-w-6 text-center font-semibold text-[#FF375F]">
-                    {s.upvotes_count}
-                  </span>
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.85 }}
-                    disabled={pending}
-                    onClick={() => vote(s.id, true)}
-                    className="btn-ghost px-2.5 py-1"
-                  >
-                    ▲
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.85 }}
-                    disabled={pending}
-                    onClick={() => vote(s.id, false)}
-                    className="btn-ghost px-2.5 py-1"
-                  >
-                    ▼
-                  </motion.button>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
+                  <motion.div
+                    animate={{ width: `${(s.upvotes_count / maxVotes) * 100}%` }}
+                    transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#FF375F] to-[#FF8FA3]"
+                  />
                 </div>
                 {canDelete(s) && (
                   <button
