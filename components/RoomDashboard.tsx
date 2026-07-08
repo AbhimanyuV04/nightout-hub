@@ -4,12 +4,15 @@ import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import type { ReactionRow } from "@/lib/reactions";
 import AddExpenseForm from "./AddExpenseForm";
 import ItineraryPoll from "./ItineraryPoll";
 import LocationShare from "./LocationShare";
 import MediaGallery from "./MediaGallery";
 import MediaUpload from "./MediaUpload";
+import NightRecap from "./NightRecap";
 import QuoteBoard from "./QuoteBoard";
+import SettledCelebration from "./SettledCelebration";
 import VibeDashboard from "./VibeDashboard";
 
 type Member = { id: string; display_name: string; is_host: boolean };
@@ -40,6 +43,7 @@ export default function RoomDashboard({
   expenses,
   debts,
   media,
+  reactions,
 }: {
   roomId: string;
   roomCode: string;
@@ -51,6 +55,7 @@ export default function RoomDashboard({
   expenses: Expense[];
   debts: Debt[];
   media: MediaItem[];
+  reactions: ReactionRow[];
 }) {
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -58,6 +63,14 @@ export default function RoomDashboard({
     VALID_TABS.includes(tabParam as Tab) ? (tabParam as Tab) : "vibe"
   );
   const nameById = new Map(members.map((m) => [m.id, m.display_name]));
+
+  // Recap ingredients — all derived from data already on this page.
+  const totalSpent = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const quoteReactions = (id: string) =>
+    reactions.filter((r) => r.target_type === "quote" && r.target_id === id).length;
+  const topQuote = quotes.length
+    ? [...quotes].sort((a, b) => quoteReactions(b.id) - quoteReactions(a.id))[0]
+    : null;
 
   // Persist the active tab in the URL so a refresh restores your place.
   // replaceState avoids a Next navigation (no server re-fetch, no history spam).
@@ -149,6 +162,17 @@ export default function RoomDashboard({
                     isHost={me?.is_host ?? false}
                   />
                   <ItineraryPoll roomCode={roomCode} suggestions={suggestions} me={me} />
+                  <NightRecap
+                    roomCode={roomCode}
+                    memberCount={members.length}
+                    totalSpent={totalSpent}
+                    photoCount={media.length}
+                    topPlace={suggestions[0]?.place_name ?? null}
+                    topQuote={
+                      topQuote ? { text: topQuote.quote_text, speaker: topQuote.speaker_name } : null
+                    }
+                    eventDate={vibe?.event_date ?? null}
+                  />
                 </>
               )}
 
@@ -172,9 +196,12 @@ export default function RoomDashboard({
                       ))}
                     </ul>
                   </section>
+                  {expenses.length > 0 && !debts.length && <SettledCelebration />}
                   <section className="card space-y-2">
                     <h2 className="section-title">Who owes whom</h2>
-                    {!debts.length && <p className="muted text-sm">All settled</p>}
+                    {!debts.length && (
+                      <p className="muted text-sm">{expenses.length ? "Everyone's even" : "All settled"}</p>
+                    )}
                     <ul className="space-y-2">
                       {debts.map((d, i) => (
                         <li key={i} className="flex items-center justify-between gap-2">
@@ -200,11 +227,24 @@ export default function RoomDashboard({
               {active === "media" && (
                 <>
                   <MediaUpload roomCode={roomCode} />
-                  <MediaGallery media={media} members={members} />
+                  <MediaGallery
+                    media={media}
+                    members={members}
+                    roomCode={roomCode}
+                    meId={me?.id ?? null}
+                    reactions={reactions.filter((r) => r.target_type === "media")}
+                  />
                 </>
               )}
 
-              {active === "quotes" && <QuoteBoard roomCode={roomCode} quotes={quotes} />}
+              {active === "quotes" && (
+                <QuoteBoard
+                  roomCode={roomCode}
+                  quotes={quotes}
+                  meId={me?.id ?? null}
+                  reactions={reactions.filter((r) => r.target_type === "quote")}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>

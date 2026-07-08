@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import Reactions from "./Reactions";
 
 type MediaItem = { id: string; image_url: string; user_id: string };
 type Member = { id: string; display_name: string };
+type Reaction = { target_id: string; emoji: string; user_id: string };
 
 type Group = { userId: string; name: string; items: MediaItem[] };
 
@@ -55,12 +57,28 @@ async function downloadGroup(g: Group) {
 export default function MediaGallery({
   media,
   members,
+  roomCode,
+  meId,
+  reactions,
 }: {
   media: MediaItem[];
   members: Member[];
+  roomCode: string;
+  meId: string | null;
+  reactions: Reaction[];
 }) {
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<MediaItem | null>(null);
   const groups = groupByUploader(media, members);
+
+  // Tile badge: total reactions on a photo, fronted by its most-used emoji.
+  function badgeFor(id: string): { emoji: string; count: number } | null {
+    const rs = reactions.filter((r) => r.target_id === id);
+    if (!rs.length) return null;
+    const counts = new Map<string, number>();
+    for (const r of rs) counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1);
+    const [emoji] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    return { emoji, count: rs.length };
+  }
 
   useEffect(() => {
     if (!lightbox) return;
@@ -113,11 +131,11 @@ export default function MediaGallery({
                   alt={`Photo from ${g.name}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setLightbox(m.image_url)}
+                  onClick={() => setLightbox(m)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setLightbox(m.image_url);
+                      setLightbox(m);
                     }
                   }}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -134,6 +152,14 @@ export default function MediaGallery({
                 >
                   <DownloadIcon className="h-3.5 w-3.5" />
                 </button>
+                {(() => {
+                  const b = badgeFor(m.id);
+                  return b ? (
+                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-full bg-black/55 px-1.5 py-0.5 text-[11px] font-semibold text-white backdrop-blur-sm">
+                      {b.emoji} {b.count}
+                    </span>
+                  ) : null;
+                })()}
               </div>
             ))}
           </div>
@@ -150,7 +176,7 @@ export default function MediaGallery({
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
           >
             <motion.img
-              src={lightbox}
+              src={lightbox.image_url}
               alt="Expanded photo"
               onClick={(e) => e.stopPropagation()}
               initial={{ scale: 0.85, opacity: 0 }}
@@ -163,7 +189,7 @@ export default function MediaGallery({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                if (lightbox) downloadOne(lightbox, "nightout-photo.jpg");
+                if (lightbox) downloadOne(lightbox.image_url, "nightout-photo.jpg");
               }}
               aria-label="Download photo"
               className="absolute right-16 top-5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white backdrop-blur-md active:scale-90"
@@ -178,6 +204,18 @@ export default function MediaGallery({
             >
               ✕
             </button>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-2 backdrop-blur-md"
+            >
+              <Reactions
+                roomCode={roomCode}
+                targetType="media"
+                targetId={lightbox.id}
+                reactions={reactions.filter((r) => r.target_id === lightbox.id)}
+                meId={meId}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

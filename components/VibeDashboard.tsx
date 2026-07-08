@@ -95,9 +95,14 @@ export default function VibeDashboard({
         ) : !parts ? (
           <p className="muted text-lg">…</p>
         ) : parts.done ? (
-          <p className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+          <motion.p
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+            className="bg-gradient-to-r from-[#FF375F] to-[#FF8FA3] bg-clip-text text-2xl font-bold tracking-tight text-transparent"
+          >
             It&apos;s happening now! 🎉
-          </p>
+          </motion.p>
         ) : (
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#111111]/60 p-3">
             <div className="pointer-events-none absolute -top-12 left-1/2 h-24 w-48 -translate-x-1/2 rounded-full bg-[#FF375F]/25 blur-3xl" />
@@ -105,7 +110,7 @@ export default function VibeDashboard({
               <Unit value={parts.days} label="Days" />
               <Unit value={parts.hours} label="Hrs" />
               <Unit value={parts.mins} label="Min" />
-              <Unit value={parts.secs} label="Sec" live />
+              <Unit value={parts.secs} label="Sec" />
             </div>
           </div>
         )}
@@ -156,30 +161,24 @@ export default function VibeDashboard({
   );
 }
 
-function Unit({ value, label, live }: { value: number; label: string; live?: boolean }) {
+function Unit({ value, label }: { value: number; label: string }) {
   const text = String(value).padStart(2, "0");
-  const numberClass =
-    "bg-gradient-to-b from-white to-[#FF8FA3] bg-clip-text text-2xl font-bold tabular-nums text-transparent";
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="flex h-14 w-full items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#1C1C1E]/70">
-        {live ? (
-          // Seconds tick with a subtle slide so the countdown feels alive.
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={text}
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 10, opacity: 0 }}
-              transition={{ duration: 0.18, ease: "easeOut" }}
-              className={numberClass}
-            >
-              {text}
-            </motion.span>
-          </AnimatePresence>
-        ) : (
-          <span className={numberClass}>{text}</span>
-        )}
+        {/* Every unit slides when its digits change (keyed on text, so idle units sit still). */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={text}
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 10, opacity: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="bg-gradient-to-b from-white to-[#FF8FA3] bg-clip-text text-2xl font-bold tabular-nums text-transparent"
+          >
+            {text}
+          </motion.span>
+        </AnimatePresence>
       </div>
       <span className="muted text-[10px] uppercase tracking-widest">{label}</span>
     </div>

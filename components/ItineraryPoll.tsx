@@ -72,6 +72,10 @@ export default function ItineraryPoll({
     };
   }, [suggestions]);
 
+  // Live poll feel: each row gets a vote-share bar; the leader wears the crown.
+  const maxVotes = Math.max(1, ...suggestions.map((s) => s.upvotes_count));
+  const hasLeader = suggestions.some((s) => s.upvotes_count > 0);
+
   function canDelete(s: Suggestion) {
     return !!me && (me.is_host || s.created_by_user_id === me.id);
   }
@@ -113,10 +117,14 @@ export default function ItineraryPoll({
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                className="flex items-center justify-between gap-2 overflow-hidden rounded-xl bg-[#111111] px-3 py-2"
+                className="overflow-hidden rounded-xl bg-[#111111] px-3 py-2"
               >
+                <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <span className="block truncate">{s.place_name}</span>
+                  <span className="block truncate">
+                    {hasLeader && s.upvotes_count === maxVotes && <span aria-hidden>👑 </span>}
+                    {s.place_name}
+                  </span>
                   {pi?.duration && (
                     <span className="muted text-xs">
                       {pi.duration} away
@@ -158,6 +166,14 @@ export default function ItineraryPoll({
                       ✕
                     </motion.button>
                   )}
+                </div>
+                </div>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
+                  <motion.div
+                    animate={{ width: `${(s.upvotes_count / maxVotes) * 100}%` }}
+                    transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                    className="h-full rounded-full bg-gradient-to-r from-[#FF375F] to-[#FF8FA3]"
+                  />
                 </div>
               </motion.li>
             );
